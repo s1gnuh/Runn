@@ -43,7 +43,25 @@
     }
     var names = { km: 'khoảng cách', pace: 'pace', time: 'thời gian' };
     var hint = NUM.filter(function (f) { return auto[f]; }).map(function (f) { return names[f]; });
-    el('qe-calc').textContent = hint.length ? 'Tự tính ' + hint.join(', ') + ' từ hai số còn lại.' : '';
+    calcHint(hint.length ? 'Đã tự tính ' + hint.join(', ') + ' từ hai số còn lại.' : '');
+    NUM.forEach(function (f) { field(f).classList.toggle('is-auto', !!auto[f]); });
+  }
+  function calcHint(text) {
+    var n = el('qe-calc');
+    n.textContent = text || 'Nhập 2 trong 3 số, số còn lại tự tính.';
+    n.className = 'hint qe-calc' + (text ? ' ok' : '');
+  }
+
+  /* ================= loại hoạt động + chọn nhanh ngày ================= */
+  function syncChips() {
+    var kind = el('qe-kind').value, date = val('date'), t0 = C.today0();
+    [].forEach.call(el('qe-kind-seg').querySelectorAll('[data-kind]'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-kind') === kind ? 'true' : 'false');
+    });
+    [].forEach.call(el('qe-days').querySelectorAll('[data-ago]'), function (b) {
+      var on = date === C.iso(C.addDays(t0, -Number(b.getAttribute('data-ago'))));
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
   }
 
   /* ================= API key Gemini ================= */
@@ -148,6 +166,7 @@
     linkTarget = !editing && date && el('qe-kind').value === 'run' ? candidateFor(date) : null;
     box.hidden = !linkTarget;
     if (linkTarget) el('qe-link-t').textContent = 'Đánh dấu xong buổi "' + linkTarget.x.s.title + '" trong Lịch tập';
+    syncChips();
   }
 
   /* ================= giày ================= */
@@ -167,10 +186,6 @@
     var st = S.stat(shoe, S.usage(runs)[id]);
     n.textContent = shoe.name + ': ' + C.fmtKm(st.total) + '/' + C.fmtKm(st.retire) + ' km'
       + (st.level === 'ok' ? '' : st.level === 'warn' ? ' · sắp đến lúc thay' : ' · đã quá ngưỡng nên thay');
-  }
-  function shoeNote(r) {
-    var ss = r.shoeId && S.get(r.shoeId);
-    return ss ? ' · ' + C.esc(ss.name) : '';
   }
   // Báo khi buổi vừa lưu làm đôi giày chạm mốc cảnh báo.
   function shoeAlert(r) {
@@ -201,7 +216,8 @@
     dropPhoto();
     el('qe-title').textContent = 'Buổi chạy mới';
     el('qe-cancel').hidden = true;
-    el('qe-calc').textContent = '';
+    calcHint('');
+    NUM.forEach(function (f) { field(f).classList.remove('is-auto'); });
     refreshLink();
     updateSave();
   }
@@ -292,34 +308,56 @@
     });
   }
 
+  var SHORT = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  var KIND_CHIP = { run: 't-easy', walk: 't-long', other: 't-rest' };
+
   function cardHtml(l) {
-    var d = l.date ? C.fromIso(l.date) : null;
-    var top = d ? C.WD[(d.getDay() + 6) % 7] + ', ' + C.fmt(d) + '/' + d.getFullYear() : 'Không rõ ngày';
-    var tags = (RL.KIND[l.kind] && l.kind !== 'run' ? ' · ' + RL.KIND[l.kind] : '') + shoeNote(l);
-    var bits = [];
-    if (l.km) bits.push(l.km + ' km');
-    if (l.time) bits.push(l.time);
-    if (l.pace) bits.push(l.pace + '/km');
-    var thumb = l.url ? '<div class="lg-thumb"><img src="' + l.url + '" loading="lazy" alt=""></div>'
-                      : '<div class="lg-thumb qe-nophoto" aria-hidden="true">' + (l.km ? C.esc(l.km) : '–') + '</div>';
-    return '<article class="lg lg-mini' + (l.cat === 'photo' ? ' photo' : '') + '" data-id="' + l.id + '">'
-      + thumb
-      + '<div class="lg-mini-body">'
-      + '<div class="lg-mini-top">' + top + tags + (l.cat === 'photo' ? ' · Ảnh chạy' : '') + '</div>'
-      + '<div class="lg-mini-stats">' + (bits.length ? bits.join(' · ') : '—') + '</div>'
-      + (l.note ? '<div class="hint">' + C.esc(l.note) + '</div>' : '')
-      + '</div>'
-      + '<div class="lg-acts">'
-      + '<button type="button" class="btn-sm" data-act="edit">Sửa</button>'
-      + '<button type="button" class="btn-sm"' + (armed === l.id ? ' data-armed="1"' : '') + ' data-act="del">'
+    var d = l.date ? C.fromIso(l.date) : null, kind = l.kind || 'run';
+    var stats = [];
+    if (l.km) stats.push('<span><b class="num">' + C.esc(C.fmtNum(l.km, 2)) + '</b> km</span>');
+    if (l.time) stats.push('<span><b class="num">' + C.esc(l.time) + '</b></span>');
+    if (l.pace) stats.push('<span><b class="num">' + C.esc(l.pace) + '</b>/km</span>');
+    var shoe = l.shoeId && S.get(l.shoeId);
+    return '<article class="rc rc-log' + (editing && editing.id === l.id ? ' editing' : '') + '" data-id="' + l.id + '">'
+      + '<div class="rc-date" aria-hidden="true"><b class="num">' + (d ? d.getDate() : '?') + '</b><span>' + (d ? SHORT[(d.getDay() + 6) % 7] : '') + '</span></div>'
+      + '<div class="rc-main">'
+      + '<div class="rc-top"><span class="chip ' + (KIND_CHIP[kind] || 't-rest') + '">' + (RL.KIND[kind] || 'Chạy') + '</span>'
+      + '<span class="hint">' + (d ? C.fmt(d) + '/' + d.getFullYear() : 'Không rõ ngày') + (shoe ? ' · ' + C.esc(shoe.name) : '')
+      + (l.cat === 'photo' ? ' · Ảnh chạy' : '') + '</span></div>'
+      + '<div class="rc-stats">' + (stats.length ? stats.join('') : '<span>—</span>') + '</div>'
+      + (l.note ? '<p class="rc-note">' + C.esc(l.note) + '</p>' : '')
+      + '<div class="rc-acts">'
+      + '<button type="button" class="btn-sm btn-xs" data-act="edit">Sửa</button>'
+      + '<button type="button" class="btn-sm btn-xs"' + (armed === l.id ? ' data-armed="1"' : '') + ' data-act="del">'
       + (armed === l.id ? 'Chắc chắn?' : 'Xóa') + '</button>'
-      + '</div></article>';
+      + '</div></div>'
+      + (l.url ? '<div class="rc-pic"><img src="' + l.url + '" loading="lazy" alt=""></div>' : '')
+      + '</article>';
   }
 
+  // Gom theo tuần (Thứ 2 – Chủ nhật), đầu mỗi nhóm có tổng km chạy và số buổi.
   function renderRecent() {
-    var all = sorted();
+    var all = sorted(), groups = [], cur = null, t0 = C.today0(), thisWk = C.iso(RL.thisWeekRange(t0).start);
     el('qe-recent-wrap').hidden = !all.length;
-    el('qe-recent').innerHTML = all.slice(0, shown).map(cardHtml).join('');
+    el('qe-recent-n').textContent = all.length ? all.length + ' buổi' : '';
+    all.slice(0, shown).forEach(function (r) {
+      var key = r.date ? C.iso(RL.thisWeekRange(C.fromIso(r.date)).start) : '';
+      if (!cur || cur.key !== key) { cur = { key: key, list: [] }; groups.push(cur); }
+      cur.list.push(r);
+    });
+    el('qe-recent').innerHTML = groups.map(function (g) {
+      var km = 0;
+      // tổng của cả tuần, kể cả buổi chưa hiện vì phân trang
+      all.forEach(function (r) {
+        if (r.kind !== 'walk' && r.date && C.iso(RL.thisWeekRange(C.fromIso(r.date)).start) === g.key) km += Number(r.km) || 0;
+      });
+      var n = all.filter(function (r) { return r.date && C.iso(RL.thisWeekRange(C.fromIso(r.date)).start) === g.key; }).length;
+      var s = g.key ? C.fromIso(g.key) : null;
+      var title = !s ? 'Không rõ ngày' : g.key === thisWk ? 'Tuần này' : C.fmt(s) + ' – ' + C.fmt(C.addDays(s, 6));
+      return '<section class="rc-week"><div class="rc-week-h"><strong>' + title + '</strong>'
+        + (s ? '<span class="num">' + n + ' buổi · ' + C.fmtKm(km) + ' km</span>' : '') + '</div>'
+        + g.list.map(cardHtml).join('') + '</section>';
+    }).join('');
     el('qe-more').hidden = all.length <= shown;
   }
 
@@ -608,9 +646,22 @@
     });
     on('qe-date', 'change', function () { dateTouched = true; refreshLink(); });
     on('qe-kind', 'change', function () { refreshLink(); renderShoe(); });
+    on('qe-kind-seg', 'click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-kind]') : null;
+      if (!b) return;
+      el('qe-kind').value = b.getAttribute('data-kind');
+      refreshLink(); renderShoe();
+    });
+    on('qe-days', 'click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-ago]') : null;
+      if (!b) return;
+      setVal('date', C.iso(C.addDays(C.today0(), -Number(b.getAttribute('data-ago')))));
+      dateTouched = true;
+      refreshLink();
+    });
     on('qe-shoe', 'change', shoeHint);
     on('qe-save', 'click', save);
-    on('qe-cancel', 'click', function () { resetForm(true); });
+    on('qe-cancel', 'click', function () { resetForm(true); renderRecent(); });
     on('qe-recent', 'click', onRecentClick);
     on('qe-more', 'click', function () { shown += PAGE; renderRecent(); });
     document.addEventListener('keydown', function (e) {

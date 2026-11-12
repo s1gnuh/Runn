@@ -50,22 +50,39 @@
       </div>
     </div>
 
-    <div class="qe-grid">
-      <label class="fld"><span>Ngày</span><input type="date" id="qe-date"></label>
-      <label class="fld"><span>Loại</span>
-        <select id="qe-kind">
-          <option value="run">Chạy</option>
-          <option value="walk">Đi bộ</option>
-          <option value="other">Khác</option>
-        </select>
-      </label>
-      <label class="fld" id="qe-shoe-wrap" hidden><span>Giày</span><select id="qe-shoe"></select></label>
-      <label class="fld"><span>Khoảng cách (km)</span><input type="text" id="qe-km" inputmode="decimal" autocomplete="off" placeholder="5,00"></label>
-      <label class="fld"><span>Pace (phút/km)</span><input type="text" id="qe-pace" inputmode="numeric" autocomplete="off" placeholder="6:30"></label>
-      <label class="fld"><span>Thời gian</span><input type="text" id="qe-time" inputmode="numeric" autocomplete="off" placeholder="32:30"></label>
-      <label class="fld wide"><span>Chú thích</span><input type="text" id="qe-note" autocomplete="off" placeholder="Cảm giác, thời tiết, đau mỏi..."></label>
+    <div class="fld">
+      <span id="qe-kind-l">Loại</span>
+      <div class="seg seg-fill" id="qe-kind-seg" role="group" aria-labelledby="qe-kind-l">
+        <button type="button" data-kind="run" aria-pressed="true">Chạy</button>
+        <button type="button" data-kind="walk" aria-pressed="false">Đi bộ</button>
+        <button type="button" data-kind="other" aria-pressed="false">Khác</button>
+      </div>
+      <select id="qe-kind" hidden aria-hidden="true" tabindex="-1">
+        <option value="run">Chạy</option>
+        <option value="walk">Đi bộ</option>
+        <option value="other">Khác</option>
+      </select>
     </div>
-    <p class="hint" id="qe-calc"></p>
+
+    <div class="qe-grid">
+      <div class="fld">
+        <label for="qe-date">Ngày</label>
+        <input type="date" id="qe-date">
+        <div class="qe-days" id="qe-days">
+          <button type="button" data-ago="0">Hôm nay</button>
+          <button type="button" data-ago="1">Hôm qua</button>        </div>
+      </div>
+      <label class="fld" id="qe-shoe-wrap" hidden><span>Giày</span><select id="qe-shoe"></select></label>
+    </div>
+
+    <div class="qe-nums">
+      <label class="fld"><span>Km</span><input type="text" id="qe-km" inputmode="decimal" autocomplete="off" placeholder="5,00"></label>
+      <label class="fld"><span>Pace /km</span><input type="text" id="qe-pace" inputmode="numeric" autocomplete="off" placeholder="6:30"></label>
+      <label class="fld"><span>Thời gian</span><input type="text" id="qe-time" inputmode="numeric" autocomplete="off" placeholder="32:30"></label>
+    </div>
+    <p class="hint qe-calc" id="qe-calc">Nhập 2 trong 3 số, số còn lại tự tính.</p>
+
+    <label class="fld"><span>Chú thích</span><input type="text" id="qe-note" autocomplete="off" placeholder="Cảm giác, thời tiết, đau mỏi..."></label>
     <p class="hint" id="qe-shoe-hint"></p>
 
     <label class="qe-link" id="qe-link" hidden>
@@ -73,8 +90,8 @@
       <span id="qe-link-t"></span>
     </label>
 
-    <div class="lg-actions">
-      <button type="button" class="btn-sm primary" id="qe-save">Lưu buổi chạy</button>
+    <div class="qe-actions">
+      <button type="button" class="btn qe-save" id="qe-save">Lưu buổi chạy</button>
       <button type="button" class="btn-sm" id="qe-cancel" hidden>Hủy sửa</button>
     </div>
   </section>
@@ -94,8 +111,8 @@
   </section>
 
   <section id="qe-recent-wrap" hidden>
-    <div class="sec-head"><h2 class="sec-title">Gần đây</h2></div>
-    <div class="cal-cards" id="qe-recent"></div>
+    <div class="sec-head"><h2 class="sec-title">Gần đây</h2><span class="hint" id="qe-recent-n"></span></div>
+    <div class="rc-groups" id="qe-recent"></div>
     <button type="button" class="btn-sm qe-more" id="qe-more" hidden>Xem thêm</button>
   </section>
 </div>

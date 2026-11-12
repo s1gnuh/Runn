@@ -27,11 +27,11 @@
     <h1>Lịch tập</h1>
   </header>
 
-  <section class="panel" id="p-pick-wrap">
-    <label class="fld"><span>Giáo án đang xem</span>
+  <section class="panel plan-hero" id="p-hero" hidden>
+    <label class="fld" id="p-pick-wrap"><span>Giáo án đang xem</span>
       <select id="p-pick"></select>
     </label>
-    <p class="hint" id="p-sum"></p>
+    <div id="p-hero-body" class="ph-body"></div>
   </section>
 
   <section class="panel" id="p-adapt" hidden>
@@ -54,6 +54,7 @@
       <h2 id="p-cal-title">Lịch tháng</h2>
       <button type="button" class="cal-nav" id="p-next" aria-label="Tháng sau">›</button>
     </div>
+    <p class="hint cal-sum" id="p-cal-sum"></p>
     <div class="cal-dow" aria-hidden="true"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
     <div class="cal" id="p-cal" role="grid" aria-label="Lịch tập theo tháng"></div>
     <div class="cal-legend">
@@ -61,6 +62,8 @@
       <span><i class="lg-dot t-quality"></i>Chất lượng</span>
       <span><i class="lg-dot t-long"></i>Dài</span>
       <span><i class="lg-dot t-race"></i>Thi đấu</span>
+      <span><i class="lg-sw done"></i>Đã chạy</span>
+      <span><i class="lg-sw miss"></i>Bỏ lỡ</span>
     </div>
     <div class="cal-day" id="p-day" aria-live="polite"></div>
   </section>
@@ -92,6 +95,7 @@
 <script src="js/blocks.js"></script>
 <script src="js/races.js"></script>
 <script src="js/runlog.js"></script>
+<script src="js/charts.js"></script>
 <script src="js/predict.js"></script>
 <script src="js/adapt.js"></script>
 <script src="js/plan-page.js"></script>

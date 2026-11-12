@@ -206,6 +206,19 @@ window.Core = (function () {
     } catch (e) {}
   }
 
+  /* ================= chặn sao chép chữ của app ================= */
+  // CSS user-select đã chặn bôi đen; đây chặn nốt Ctrl+C / Ctrl+X, Ctrl+A, menu
+  // chuột phải và kéo thả. Ô nhập liệu được miễn để người dùng vẫn sửa, dán được.
+  function editable(t) {
+    return !!t && !!t.closest && !!t.closest('input, textarea, [contenteditable="true"]');
+  }
+  ['copy', 'cut', 'contextmenu', 'dragstart', 'selectstart'].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { if (!editable(e.target)) e.preventDefault(); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && /^[acx]$/i.test(e.key) && !editable(e.target)) e.preventDefault();
+  });
+
   /* ================= service worker ================= */
   function registerSW() {
     if (!('serviceWorker' in navigator)) return;

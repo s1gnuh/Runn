@@ -1,6 +1,6 @@
 // Service worker: app-shell cache cho cả trang chủ (index.html) lẫn trang
 // giải (race.html). Bump CACHE khi các file dưới đổi đáng kể.
-var CACHE = 'bn27-cache-v26';
+var CACHE = 'bn27-cache-v28';
 var STATE = 'bn27-state';
 var FONTS = 'bn27-fonts';
 var CORE = [

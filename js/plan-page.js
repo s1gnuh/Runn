@@ -1,26 +1,30 @@
 // Điều khiển plan.html — trang Lịch tập toàn cục. Gộp buổi tập của mọi
-// giáo án đang theo (hoặc lọc về một giáo án), hiện lịch tháng, chi tiết
-// từng ngày và lịch tuần, đánh dấu buổi đã chạy ngay tại đây.
+// giáo án đang theo (hoặc lọc về một giáo án): thẻ tổng quan, lịch tháng,
+// chi tiết từng ngày và lịch tuần thu gọn, đánh dấu buổi đã chạy ngay tại đây.
 (function () {
   'use strict';
-  var C = window.Core, B = window.Blocks, R = window.Races, RL = window.RunLog;
+  var C = window.Core, B = window.Blocks, R = window.Races, RL = window.RunLog, CH = window.Charts;
   var el = function (id) { return document.getElementById(id); };
   var on = function (id, ev, fn) { var n = el(id); if (n) n.addEventListener(ev, fn); };
   var MONTHS = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
                 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
   var SEP = '::';
+  var KIND_CHIP = { run: 't-easy', walk: 't-long', other: 't-rest' };
 
   var blocks = [], runs = [], sel = 'all', calMonth = null, calSel = '';
   // buổi đang sửa / đang chờ xác nhận xóa: "blockId::sessionId", hoặc "run:<id>" cho nhật ký
   var editKey = '', armedKey = '';
   var adaptItems = [], runsReady = false;
   var zones = null;   // vùng pace gợi ý từ kết quả thực tế (Predict), null khi chưa đủ dữ liệu
+  var openWeeks = null; // { wi: true/false } tuần đang mở trong lịch tuần, null = theo mặc định
 
   /* ================= truy vấn ================= */
   function raceName(b) {
     var race = R.get(b.raceId);
     return race ? race.name : 'Giáo án chưa gắn giải';
   }
+  function fullDate(d) { return C.fmt(d) + '/' + d.getFullYear(); }
+  function wdName(d) { return C.WD[(d.getDay() + 6) % 7]; }
   function selected() {
     return sel === 'all' ? blocks : blocks.filter(function (b) { return b.id === sel; });
   }
@@ -56,29 +60,91 @@
   function monthStart(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
   function sameMonth(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth(); }
 
-  /* ================= ô chọn giáo án ================= */
+  // Từng tuần của một giáo án: km kế hoạch, km của buổi đã đánh dấu, số buổi.
+  function weekInfo(b) {
+    var info = B.sessionsOf(b), tpl = info.tpl;
+    if (!tpl) return null;
+    var t0 = C.today0(), weeks = [], cur = -1;
+    for (var wi = 0; wi < tpl.weeks.length; wi++) {
+      var w = { wi: wi, start: B.dayOf(b, wi, 0), end: B.dayOf(b, wi, 6), plan: 0, done: 0, n: 0, nd: 0,
+                ph: tpl.weeks[wi].ph || '', race: !!tpl.weeks[wi].race };
+      info.list.forEach(function (x) {
+        if (x.wi !== w.wi || x.s.type === 'rest') return;
+        var km = Number(x.s.km) || 0;
+        w.plan += km; w.n++;
+        if (b.done[x.id]) { w.done += km; w.nd++; }
+      });
+      if (t0 >= w.start && t0 <= w.end) cur = wi;
+      weeks.push(w);
+    }
+    return { tpl: tpl, weeks: weeks, cur: cur };
+  }
+  function fig(v, l) { return '<div class="fig"><b>' + v + '</b><span>' + C.esc(l) + '</span></div>'; }
+  function countdown(race) {
+    if (!race) return '';
+    var d = R.daysUntil(race);
+    if (d > 0) return '<b>' + d + '</b><span>ngày nữa thi</span>';
+    if (d === 0) return '<b>Hôm nay</b><span>ngày thi</span>';
+    return '<b>Xong</b><span>đã thi</span>';
+  }
+
+  /* ================= ô chọn + thẻ tổng quan ================= */
   function renderPick() {
-    var pick = el('p-pick');
     var opts = [];
     if (blocks.length > 1) opts.push('<option value="all"' + (sel === 'all' ? ' selected' : '') + '>Tất cả giáo án (' + blocks.length + ')</option>');
     blocks.forEach(function (b) {
       opts.push('<option value="' + b.id + '"' + (sel === b.id ? ' selected' : '') + '>'
         + C.esc(raceName(b)) + (B.isActive(b) ? ' · đang chạy' : '') + '</option>');
     });
-    pick.innerHTML = opts.join('');
-    el('p-pick-wrap').hidden = blocks.length < 2 && !singleBlock();
+    el('p-pick').innerHTML = opts.join('');
+    el('p-pick-wrap').hidden = blocks.length < 2;
+  }
 
-    var one = singleBlock(), txt = '';
-    if (one) {
-      var st = B.stats(one), race = R.get(one.raceId);
-      txt = st.n + '/' + st.total + ' buổi đã chạy · ' + C.fmtKm(st.km) + ' km'
-        + (race ? ' · thi ngày ' + C.fmt(C.fromIso(race.date)) + '/' + C.fromIso(race.date).getFullYear() : '');
-    } else {
-      var n = 0, tot = 0;
-      blocks.forEach(function (b) { var s = B.stats(b); n += s.n; tot += s.total; });
-      txt = blocks.length + ' giáo án · ' + n + '/' + tot + ' buổi đã chạy';
+  function renderHero() {
+    var hero = el('p-hero'), body = el('p-hero-body');
+    hero.hidden = !blocks.length;
+    if (!blocks.length) return;
+    var one = singleBlock();
+    if (!one) {
+      body.innerHTML = '<div class="ph-list">' + blocks.map(function (b) {
+        var st = B.stats(b), race = R.get(b.raceId), d = race ? R.daysUntil(race) : null;
+        return '<button type="button" class="ph-item" data-pick="' + b.id + '">'
+          + '<span class="ph-item-top"><strong>' + C.esc(raceName(b)) + '</strong><span class="num">' + st.pct + '%</span></span>'
+          + '<span class="bar"><i style="width:' + st.pct + '%"></i></span>'
+          + '<span class="hint">' + st.n + '/' + st.total + ' buổi · ' + C.fmtKm(st.km) + ' km'
+          + (d == null ? '' : d > 0 ? ' · còn ' + d + ' ngày' : d === 0 ? ' · thi hôm nay' : ' · đã thi') + '</span></button>';
+      }).join('') + '</div>';
+      return;
     }
-    el('p-sum').textContent = txt;
+    var wk = weekInfo(one), st = B.stats(one), race = R.get(one.raceId), t0 = C.today0();
+    var sub = [wk && wk.tpl.name ? wk.tpl.name : '', race ? 'thi ' + fullDate(C.fromIso(race.date)) : ''].filter(Boolean).join(' · ');
+    var curFig = !wk ? fig('—', 'tuần hiện tại')
+      : wk.cur >= 0 ? fig((wk.cur + 1) + '<small>/' + wk.weeks.length + '</small>', 'tuần hiện tại')
+      : t0 < wk.weeks[0].start ? fig(Math.round((wk.weeks[0].start - t0) / 864e5) + '<small>ngày</small>', 'nữa bắt đầu')
+      : fig('Xong', wk.weeks.length + ' tuần');
+    var html = '<div class="ph-top"><div class="ph-name"><h2>' + C.esc(raceName(one)) + '</h2>'
+      + (sub ? '<span class="hint">' + C.esc(sub) + '</span>' : '') + '</div>'
+      + (race ? '<div class="ph-count">' + countdown(race) + '</div>' : '') + '</div>'
+      + '<div class="figs">' + fig(st.n + '<small>/' + st.total + '</small>', 'buổi đã chạy')
+      + fig(C.fmtKm(st.km) + '<small>km</small>', 'đã chạy') + curFig + '</div>'
+      + '<div class="ph-prog"><div class="bar"><i style="width:' + st.pct + '%"></i></div><span class="num">' + st.pct + '%</span></div>';
+    if (wk) {
+      var max = Math.max.apply(null, wk.weeks.map(function (w) { return w.plan; })) || 1;
+      html += '<div class="pw" role="list" aria-label="Khối lượng từng tuần của giáo án">' + wk.weeks.map(function (w) {
+        var state = w.wi === wk.cur ? ' now' : w.end < t0 ? ' past' : '';
+        var head = 'Tuần ' + (w.wi + 1) + ' · ' + C.fmt(w.start) + ' – ' + C.fmt(w.end) + (w.ph ? ' · ' + w.ph : '');
+        return '<button type="button" class="pw-w' + state + '" role="listitem" data-wk="' + w.wi + '"'
+          + CH.tipAttrs(head, C.fmtKm(w.plan) + ' km|kế hoạch~' + C.fmtKm(w.done) + ' km|đã chạy~' + w.nd + '/' + w.n + '|buổi')
+          + ' aria-label="' + C.esc(head + ': ' + C.fmtKm(w.done) + ' trên ' + C.fmtKm(w.plan) + ' km, ' + w.nd + ' trên ' + w.n + ' buổi') + '">'
+          + '<span class="pw-col"><span class="pw-bar" style="height:' + (w.plan / max * 100).toFixed(1) + '%">'
+          + '<i style="height:' + (w.plan ? w.done / w.plan * 100 : 0).toFixed(1) + '%"></i></span></span>'
+          + '<span class="pw-n num">' + (w.wi + 1) + '</span></button>';
+      }).join('') + '</div>'
+        + '<div class="ch-legend"><span><i class="lk-bar pw-plan"></i>Km kế hoạch</span><span><i class="lk-bar"></i>Đã chạy</span>'
+        + '<span><i class="lk-bar pw-cur"></i>Tuần này</span><span>Chạm vào cột để mở tuần đó</span></div>';
+    }
+    body.innerHTML = html;
+    CH.bindTips(body);
   }
 
   /* ================= lịch tháng ================= */
@@ -100,34 +166,48 @@
     for (var i = 0; i < 42; i++) {
       var d = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1 - offset + i);
       var key = C.iso(d), list = map[key] || [];
+      var all = list.length && list.every(function (e) { return !!e.b.done[e.x.id]; });
       var cls = ['cday'];
       if (!sameMonth(d, calMonth)) cls.push('out');
       if (key === C.iso(t0)) cls.push('today');
       if (key === calSel) cls.push('sel');
-      if (list.length && list.every(function (e) { return !!e.b.done[e.x.id]; })) cls.push('done');
+      if (all) cls.push('done');
+      else if (list.length && d < t0) cls.push('miss');
       var dots = list.slice(0, 3).map(function (e) { return '<i class="cd-dot t-' + e.x.s.type + '"></i>'; }).join('');
       var names = list.map(function (e) { return e.x.s.title; }).join(', ');
       cells += '<button type="button" class="' + cls.join(' ') + '" data-day="' + key + '"'
-        + ' aria-label="' + C.fmt(d) + (names ? ', ' + C.esc(names) : ', không có buổi chạy') + '">'
+        + ' aria-label="' + C.fmt(d) + (names ? ', ' + C.esc(names) + (all ? ', đã chạy' : d < t0 ? ', bỏ lỡ' : '') : ', không có buổi chạy') + '">'
         + '<span class="cd-num num">' + d.getDate() + '</span>'
         + (dots ? '<span class="cd-dots">' + dots + '</span>' : '')
         + (photosOn(key).length ? '<i class="cd-pic"></i>' : '')
         + '</button>';
     }
     box.innerHTML = cells;
+
+    var mList = entries().filter(function (e) { return sameMonth(e.x.date, calMonth); });
+    var nDone = 0, nMiss = 0, kmPlan = 0, kmDone = 0;
+    mList.forEach(function (e) {
+      var km = Number(e.x.s.km) || 0, dn = !!e.b.done[e.x.id];
+      kmPlan += km;
+      if (dn) { nDone++; kmDone += km; } else if (e.x.date < t0) nMiss++;
+    });
+    el('p-cal-sum').textContent = mList.length
+      ? mList.length + ' buổi trong tháng · ' + nDone + ' đã chạy' + (nMiss ? ' · ' + nMiss + ' bỏ lỡ' : '')
+        + ' · ' + C.fmtKm(kmDone) + '/' + C.fmtKm(kmPlan) + ' km'
+      : 'Không có buổi nào trong tháng này.';
   }
 
   /* ================= sửa / xóa buổi tập ================= */
   var TYPES = [['easy', 'Nhẹ'], ['quality', 'Chất lượng'], ['long', 'Dài']];
 
   function isArmed(key) { return armedKey === key; }
-  function delBtn(key, cls) {
-    return '<button type="button" class="btn-sm"' + (isArmed(key) ? ' data-armed="1"' : '')
+  function delBtn(key) {
+    return '<button type="button" class="btn-sm btn-xs"' + (isArmed(key) ? ' data-armed="1"' : '')
       + ' data-act="del" data-k="' + key + '">' + (isArmed(key) ? 'Chắc chắn xóa?' : 'Xóa') + '</button>';
   }
   function actsHtml(key, x) {
-    return '<button type="button" class="btn-sm" data-act="edit" data-k="' + key + '">Sửa</button>'
-      + (x.adj ? '<button type="button" class="btn-sm" data-act="reset-edit" data-k="' + key + '">Hoàn tác</button>' : '')
+    return '<button type="button" class="btn-sm btn-xs" data-act="edit" data-k="' + key + '">Sửa</button>'
+      + (x.adj ? '<button type="button" class="btn-sm btn-xs" data-act="reset-edit" data-k="' + key + '">Hoàn tác</button>' : '')
       + (x.s.type === 'race' ? '' : delBtn(key));
   }
 
@@ -157,7 +237,20 @@
     return null;
   }
 
+  function openWeek(wi) {
+    if (!openWeeks) openWeeks = defaultOpen();
+    openWeeks[wi] = true;
+    renderWeeks();
+    var t = document.querySelector('#p-weeks .week[data-wi="' + wi + '"]');
+    if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function onAct(e) {
+    var pick = e.target.closest ? e.target.closest('[data-pick]') : null;
+    if (pick) { sel = pick.getAttribute('data-pick'); resetView(); renderAll(); return; }
+    var wkBtn = e.target.closest ? e.target.closest('[data-wk]') : null;
+    if (wkBtn) { CH.hideTip(); openWeek(Number(wkBtn.getAttribute('data-wk'))); return; }
+
     var btn = e.target.closest ? e.target.closest('[data-act]') : null;
     if (!btn) return;
     var act = btn.getAttribute('data-act'), key = btn.getAttribute('data-k') || '';
@@ -225,21 +318,43 @@
     box.innerHTML = rows.map(function (r) {
       return '<div class="removed-item"><span class="chip t-' + r.x.s.type + '">' + C.LABEL[r.x.s.type] + '</span>'
         + '<strong>' + C.esc(r.x.s.title) + '</strong>'
-        + '<span class="hint">' + C.fmt(r.x.date) + '/' + r.x.date.getFullYear()
+        + '<span class="hint">' + fullDate(r.x.date)
         + (sel === 'all' && blocks.length > 1 ? ' · ' + C.esc(raceName(r.b)) : '') + '</span>'
         + '<button type="button" class="btn-sm" data-act="restore" data-k="' + r.b.id + SEP + r.x.id + '">Khôi phục</button></div>';
     }).join('');
   }
 
   /* ================= chi tiết một ngày ================= */
+  function runCard(l) {
+    var armed = armedKey === 'run:' + l.id, kind = l.kind || 'run';
+    var stats = [];
+    if (l.km) stats.push('<span><b class="num">' + C.esc(C.fmtNum(l.km, 2)) + '</b> km</span>');
+    if (l.time) stats.push('<span><b class="num">' + C.esc(l.time) + '</b></span>');
+    if (l.pace) stats.push('<span><b class="num">' + C.esc(l.pace) + '</b>/km</span>');
+    return '<article class="rc' + (l.url ? ' has-pic' : '') + '">'
+      + '<div class="rc-main">'
+      + '<div class="rc-top"><span class="chip ' + (KIND_CHIP[kind] || 't-rest') + '">' + (RL.KIND[kind] || 'Chạy') + '</span>'
+      + '<span class="hint">' + (l.cat === 'photo' ? 'Ảnh chạy' : 'Nhật ký chạy') + '</span></div>'
+      + '<div class="rc-stats">' + (stats.length ? stats.join('') : '<span>—</span>') + '</div>'
+      + (l.note ? '<p class="rc-note">' + C.esc(l.note) + '</p>' : '')
+      + '<div class="rc-acts"><a class="btn-sm btn-xs" href="log.html?edit=' + l.id + '">Sửa</a>'
+      + '<button type="button" class="btn-sm btn-xs"' + (armed ? ' data-armed="1"' : '') + ' data-act="run-del" data-k="' + l.id + '">'
+      + (armed ? 'Chắc chắn?' : 'Xóa') + '</button></div></div>'
+      + (l.url ? '<div class="rc-pic"><img src="' + l.url + '" loading="lazy" alt=""></div>' : '')
+      + '</article>';
+  }
+
   function renderDay() {
     var box = el('p-day');
     if (!box) return;
     if (!calSel) { box.innerHTML = '<p class="hint">Bấm vào một ngày trong lịch để xem buổi tập và ảnh của ngày đó.</p>'; return; }
-    var d = C.fromIso(calSel);
+    var d = C.fromIso(calSel), t0 = C.today0();
     var list = byDate()[calSel] || [];
     var pics = photosOn(calSel);
-    var html = '<div class="cdh"><strong>' + C.WD[(d.getDay() + 6) % 7] + ', ' + C.fmt(d) + '/' + d.getFullYear() + '</strong></div>';
+    var rel = d.getTime() === t0.getTime() ? 'Hôm nay' : d.getTime() === C.addDays(t0, 1).getTime() ? 'Ngày mai'
+      : d.getTime() === C.addDays(t0, -1).getTime() ? 'Hôm qua' : '';
+    var html = '<div class="cdh"><strong>' + wdName(d) + ', ' + fullDate(d) + '</strong>'
+      + (rel ? '<span class="chip tag-now">' + rel + '</span>' : '') + '</div>';
 
     if (!list.length) {
       html += '<p class="hint">Không có buổi nào trong giáo án vào ngày này.</p>';
@@ -247,100 +362,89 @@
       html += list.map(function (e) {
         var dn = !!e.b.done[e.x.id];
         var multi = sel === 'all' && blocks.length > 1;
-        var key = e.b.id + SEP + e.x.id;
-        return '<div class="cdb">'
-          + '<input type="checkbox" data-done="' + key + '"' + (dn ? ' checked' : '')
-          + ' aria-label="Đã chạy ' + C.esc(e.x.s.title) + '">'
-          + '<span class="chip t-' + e.x.s.type + '">' + C.LABEL[e.x.s.type] + '</span>'
-          + '<span class="cdt">' + C.esc(e.x.s.title) + '</span>'
+        var key = e.b.id + SEP + e.x.id, type = e.x.s.type;
+        var hint = window.Predict.hintFor(type, zones);
+        return '<div class="sess s-' + type + (dn ? ' done' : '') + (e.x.date < t0 && !dn ? ' miss' : '') + '">'
+          + '<label class="sess-check"><input type="checkbox" data-done="' + key + '"' + (dn ? ' checked' : '')
+          + ' aria-label="Đã chạy ' + C.esc(e.x.s.title) + '"></label>'
+          + '<div class="sess-main">'
+          + '<div class="sess-top"><span class="chip t-' + type + '">' + C.LABEL[type] + '</span>'
           + (e.x.edited ? '<span class="tag-edited">' + (e.x.adj ? 'tự điều chỉnh' : 'đã sửa') + '</span>' : '')
+          + (dn ? '<span class="sess-st ok">Đã chạy</span>' : e.x.date < t0 ? '<span class="sess-st">Bỏ lỡ</span>' : '')
+          + '<span class="sess-km num">' + C.fmtKm(e.x.s.km) + ' km</span></div>'
+          + '<strong class="sess-title">' + C.esc(e.x.s.title) + '</strong>'
           + (multi ? '<span class="hint">' + C.esc(raceName(e.b)) + '</span>' : '')
-          + '<span class="cdb-acts">' + actsHtml(key, e.x) + '</span>'
-          + '<span class="kmv num">' + C.fmtKm(e.x.s.km) + ' km</span>'
-          + '</div>'
           + (editKey === key ? editorHtml(key, e.x)
               : (e.x.s.d ? '<p class="cdn">' + C.esc(e.x.s.d) + '</p>' : '')
                 + (e.x.adj ? '<p class="cdn adj-why">' + C.esc(e.x.adj.why) + '</p>' : '')
-                + (dn || !window.Predict.hintFor(e.x.s.type, zones) ? ''
-                    : '<p class="cdn pace-hint">' + C.esc(window.Predict.hintFor(e.x.s.type, zones)) + '</p>'));
+                + (dn || !hint ? '' : '<p class="cdn pace-hint">' + C.esc(hint) + '</p>')
+                + '<div class="sess-acts">' + actsHtml(key, e.x) + '</div>')
+          + '</div></div>';
       }).join('');
     }
 
-    if (pics.length) {
-      html += '<div class="cal-cards">' + pics.map(function (l) {
-        var bits = [];
-        if (l.km) bits.push(l.km + ' km');
-        if (l.time) bits.push(l.time);
-        if (l.pace) bits.push(l.pace + '/km');
-        var armed = armedKey === 'run:' + l.id;
-        return '<article class="lg lg-mini' + (l.cat === 'photo' ? ' photo' : '') + '">'
-          + (l.url ? '<div class="lg-thumb"><img src="' + l.url + '" loading="lazy" alt=""></div>'
-                   : '<div class="lg-thumb qe-nophoto" aria-hidden="true">' + (l.km ? C.esc(l.km) : '–') + '</div>')
-          + '<div class="lg-mini-body">'
-          + '<div class="lg-mini-top">' + (l.cat === 'photo' ? 'Ảnh chạy' : 'Nhật ký chạy') + '</div>'
-          + '<div class="lg-mini-stats">' + (bits.length ? bits.join(' · ') : '—') + '</div>'
-          + (l.note ? '<div class="hint">' + C.esc(l.note) + '</div>' : '')
-          + '</div>'
-          + '<div class="lg-acts">'
-          + '<a class="btn-sm" href="log.html?edit=' + l.id + '">Sửa</a>'
-          + '<button type="button" class="btn-sm"' + (armed ? ' data-armed="1"' : '') + ' data-act="run-del" data-k="' + l.id + '">'
-          + (armed ? 'Chắc chắn?' : 'Xóa') + '</button>'
-          + '</div></article>';
-      }).join('') + '</div>';
-    }
-    html += '<a class="btn-sm" href="log.html?date=' + calSel + '">Nhập buổi chạy cho ngày này</a>';
+    if (pics.length) html += '<div class="cal-cards">' + pics.map(runCard).join('') + '</div>';
+    html += '<a class="btn-sm" href="log.html?date=' + calSel + '">+ Nhập buổi chạy cho ngày này</a>';
     box.innerHTML = html;
   }
 
   /* ================= lịch tuần (chỉ khi chọn 1 giáo án) ================= */
+  // Mặc định chỉ mở tuần đang chạy (chưa bắt đầu thì tuần đầu, xong rồi thì tuần cuối).
+  function defaultOpen() {
+    var one = singleBlock(), wk = one && weekInfo(one), o = {};
+    if (!wk) return o;
+    o[wk.cur >= 0 ? wk.cur : C.today0() < wk.weeks[0].start ? 0 : wk.weeks.length - 1] = true;
+    return o;
+  }
   function renderWeeks() {
     var wrap = el('p-weeks-wrap'), box = el('p-weeks');
     var one = singleBlock();
     if (!one) { wrap.hidden = true; return; }
-    var info = B.sessionsOf(one), tpl = info.tpl;
+    var info = B.sessionsOf(one), tpl = info.tpl, wk = weekInfo(one);
     if (!tpl) { wrap.hidden = true; return; }
     wrap.hidden = false;
+    if (!openWeeks) openWeeks = defaultOpen();
     var t0 = C.today0(), html = '';
-    for (var wi = 0; wi < tpl.weeks.length; wi++) {
-      var start = B.dayOf(one, wi, 0), end = B.dayOf(one, wi, 6);
-      var cur = t0 >= start && t0 <= end;
-      var items = info.list.filter(function (x) { return x.wi === wi; });
-      var full = B.weekComplete(one, wi);
-      var tot = 0, rows = '';
-      items.forEach(function (x) {
-        var dn = !!one.done[x.id];
-        tot += Number(x.s.km) || 0;
-        rows += '<div class="row' + (dn ? ' done' : '') + '">'
-          + (x.s.type === 'rest'
+    wk.weeks.forEach(function (w) {
+      var wi = w.wi, cur = wi === wk.cur, full = B.weekComplete(one, wi), past = w.end < t0;
+      var rows = '';
+      info.list.filter(function (x) { return x.wi === wi; }).forEach(function (x) {
+        var dn = !!one.done[x.id], rest = x.s.type === 'rest', key = one.id + SEP + x.id;
+        rows += '<div class="row r-' + x.s.type + (dn ? ' done' : '') + (!rest && !dn && x.date < t0 ? ' miss' : '') + '">'
+          + (rest
               ? '<span class="spacer"></span>'
-              : '<input type="checkbox" data-done="' + one.id + SEP + x.id + '"' + (dn ? ' checked' : '')
+              : '<input type="checkbox" data-done="' + key + '"' + (dn ? ' checked' : '')
                 + ' aria-label="Đã chạy ' + C.esc(x.s.title) + '">')
-          + '<div class="day"><b>' + C.WD[(x.date.getDay() + 6) % 7] + '</b><span class="num">' + C.fmt(x.date) + '</span></div>'
+          + '<div class="day"><b>' + wdName(x.date) + '</b><span class="num">' + C.fmt(x.date) + '</span></div>'
           + '<div class="what"><strong>' + C.esc(x.s.title) + '</strong>'
           + (x.edited ? '<span class="tag-edited">' + (x.adj ? 'tự điều chỉnh' : 'đã sửa') + '</span>' : '')
           + (x.s.d ? '<p>' + C.esc(x.s.d) + '</p>' : '')
-          + (x.s.type === 'rest' ? '' : '<div class="row-acts">' + actsHtml(one.id + SEP + x.id, x) + '</div>')
-          + '<details class="note-box"><summary>Ghi chú</summary>'
-          + '<textarea class="note-ta" data-note="' + one.id + SEP + x.id + '" rows="2">' + C.esc(one.notes[x.id] || '') + '</textarea>'
-          + '</details></div>'
+          + '<div class="row-foot">' + (rest ? '' : actsHtml(key, x))
+          + '<details class="note-box"><summary>Ghi chú' + (one.notes[x.id] ? ' ●' : '') + '</summary>'
+          + '<textarea class="note-ta" data-note="' + key + '" rows="2">' + C.esc(one.notes[x.id] || '') + '</textarea>'
+          + '</details></div></div>'
           + '<div class="kmv num">' + (x.s.km ? C.fmtKm(x.s.km) + ' km' : '—') + '</div>'
           + '</div>';
       });
-      var wk = tpl.weeks[wi];
-      html += '<article class="week' + (cur ? ' current' : '') + (full ? ' full' : '') + '" data-wi="' + wi + '">'
+      var pct = w.n ? Math.round(w.nd / w.n * 100) : 0, wkTpl = tpl.weeks[wi];
+      html += '<details class="week' + (cur ? ' current' : '') + (full ? ' full' : '') + (past && !full ? ' past' : '') + '" data-wi="' + wi + '"'
+        + (openWeeks[wi] ? ' open' : '') + '>'
+        + '<summary class="wk-sum">'
         + '<div class="wk-head"><h3>Tuần ' + (wi + 1) + '</h3>'
-        + '<span class="dates num">' + C.fmt(start) + ' – ' + C.fmt(end) + '</span>'
+        + '<span class="dates num">' + C.fmt(w.start) + ' – ' + C.fmt(w.end) + '</span>'
         + '<span class="sp"></span>'
-        + '<span class="km num">' + C.fmtKm(tot) + ' km</span></div>'
+        + '<span class="km num">' + C.fmtKm(w.done) + '<small>/' + C.fmtKm(w.plan) + ' km</small></span></div>'
         + '<div class="wk-phase">'
-        + (wk.ph ? '<span class="chip t-' + (wk.race ? 'race' : 'easy') + '">' + C.esc(wk.ph) + '</span>' : '')
+        + (w.ph ? '<span class="chip t-' + (w.race ? 'race' : 'easy') + '">' + C.esc(w.ph) + '</span>' : '')
         + (cur ? '<span class="chip tag-now">Tuần này</span>' : '')
         + (full ? '<span class="chip t-easy chip-full">Đủ tuần</span>' : '')
-        + '</div>'
+        + '<span class="wk-count num">' + w.nd + '/' + w.n + ' buổi</span></div>'
+        + '<div class="bar wk-bar"><i style="width:' + pct + '%"></i></div>'
+        + '</summary>'
         + rows
-        + (wk.nt ? '<div class="wk-note">' + C.esc(wk.nt) + '</div>' : '')
-        + '</article>';
-    }
+        + (wkTpl.nt ? '<div class="wk-note">' + C.esc(wkTpl.nt) + '</div>' : '')
+        + '</details>';
+    });
     box.innerHTML = html;
   }
 
@@ -368,7 +472,8 @@
         + '<span class="chip ' + (it.level === 'high' ? 'conf-lo' : it.level === 'info' ? 'conf-hi' : 'conf-mid') + '">' + it.changes.length + ' buổi</span></div>'
         + (blocks.length > 1 && b ? '<p class="hint">' + C.esc(raceName(b)) + '</p>' : '')
         + '<p class="adapt-why">' + C.esc(it.why) + '</p>'
-        + '<ul class="adapt-diff">' + it.changes.map(function (c) { return '<li>' + C.esc(c.line) + '</li>'; }).join('') + '</ul>'
+        + '<details class="adapt-more"><summary>Xem ' + it.changes.length + ' buổi sẽ thay đổi</summary>'
+        + '<ul class="adapt-diff">' + it.changes.map(function (c) { return '<li>' + C.esc(c.line) + '</li>'; }).join('') + '</ul></details>'
         + '<button type="button" class="btn-sm primary" data-act="adapt" data-k="' + i + '">' + (it.restore ? 'Khôi phục' : 'Áp dụng') + '</button>'
         + '</article>';
     }).join('');
@@ -399,11 +504,14 @@
   }
 
   /* ================= render + sự kiện ================= */
+  function resetView() { calMonth = null; calSel = C.iso(C.today0()); editKey = ''; armedKey = ''; openWeeks = null; }
+
   function renderAll() {
     renderPick();
     var has = blocks.length > 0;
     el('p-empty').hidden = has;
     el('p-cal-wrap').hidden = !has;
+    renderHero();
     if (!has) { el('p-weeks-wrap').hidden = true; el('p-removed-wrap').hidden = true; el('p-adapt').hidden = true; return; }
     renderCal(); renderDay(); renderWeeks(); renderRemoved(); renderAdapt();
   }
@@ -420,10 +528,7 @@
   }
 
   function bind() {
-    on('p-pick', 'change', function (e) {
-      sel = e.target.value; calMonth = null; calSel = ''; editKey = ''; armedKey = '';
-      renderAll();
-    });
+    on('p-pick', 'change', function (e) { sel = e.target.value; resetView(); renderAll(); });
     on('p-prev', 'click', function () {
       calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1); renderCal();
     });
@@ -439,9 +544,16 @@
       renderCal(); renderDay();
     });
     on('p-jump', 'click', function () {
-      var t = document.querySelector('#p-weeks .week.current') || document.querySelector('#p-weeks .week');
-      if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      var one = singleBlock(), wk = one && weekInfo(one);
+      if (wk) openWeek(wk.cur >= 0 ? wk.cur : 0);
     });
+    // 'toggle' không nổi bọt nên bắt ở pha capture để nhớ tuần nào đang mở qua các lần vẽ lại.
+    document.addEventListener('toggle', function (e) {
+      var d = e.target;
+      if (!d.classList || !d.classList.contains('week')) return;
+      if (!openWeeks) openWeeks = defaultOpen();
+      openWeeks[d.getAttribute('data-wi')] = d.open;
+    }, true);
 
     document.addEventListener('click', onAct);
     on('p-adapt-auto', 'change', function (e) {
@@ -468,7 +580,7 @@
 
   function boot() {
     var d = new Date();
-    el('p-eyebrow').textContent = C.WD[(d.getDay() + 6) % 7] + ', ' + C.fmt(d) + '/' + d.getFullYear();
+    el('p-eyebrow').textContent = wdName(d) + ', ' + fullDate(d);
     blocks = B.list();
     // mặc định: nếu đang có đúng một giáo án chạy thì mở sẵn nó
     var active = blocks.filter(B.isActive);
