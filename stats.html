@@ -27,23 +27,71 @@
     <h1>Thống kê</h1>
   </header>
 
-  <section class="panel" id="week-wrap">
-    <h2>Tuần này</h2>
-    <div class="ring-row">
-      <div class="ring-box" id="week-ring"></div>
-      <div class="ring-side" id="week-side"></div>
+  <nav class="jump" id="jump" aria-label="Mục trong trang">
+    <a href="#s-overview">Tổng quan</a>
+    <a href="#s-activity">Hoạt động</a>
+    <a href="#s-volume">Khối lượng</a>
+    <a href="#s-pace">Pace</a>
+    <a href="#s-records">Thành tích</a>
+    <a href="#s-goals">Mục tiêu</a>
+    <a href="#shoes">Giày</a>
+    <a href="#ai">AI</a>
+  </nav>
+
+  <div class="jump-sec" id="s-overview">
+    <section class="panel week-hero" id="week-wrap">
+      <div class="sec-head"><h2>Tuần này</h2><span class="hint num" id="week-range"></span></div>
+      <div class="ring-row">
+        <div class="ring-box" id="week-ring"></div>
+        <div class="ring-side" id="week-side"></div>
+      </div>
+      <div class="wd-row" id="week-days"></div>
+    </section>
+    <section class="tiles" id="stat-grid" aria-label="Số liệu tổng hợp"></section>
+  </div>
+
+  <section class="panel jump-sec" id="s-activity">
+    <div class="sec-head"><h2>Lịch hoạt động</h2><span class="hint" id="hm-range"></span></div>
+    <div class="figs" id="hm-figs"></div>
+    <div id="hm-box" class="hm-wrap"></div>
+    <div class="hm-legend" aria-hidden="true"><span>Ít</span><i class="hm-c l0"></i><i class="hm-c l1"></i><i class="hm-c l2"></i><i class="hm-c l3"></i><i class="hm-c l4"></i><span>Nhiều</span></div>
+    <p class="hint">Mỗi ô là một ngày chạy (không tính đi bộ). Màu càng đậm càng nhiều km: dưới 5, 5–10, 10–15, từ 15 km. Chạm vào ô để xem số liệu.</p>
+  </section>
+
+  <section class="panel jump-sec" id="s-volume">
+    <div class="sec-head">
+      <h2>Khối lượng</h2>
+      <div class="seg seg-sm" id="vol-seg" role="group" aria-label="Xem theo">
+        <button type="button" data-vol="week" aria-pressed="true">Tuần</button>
+        <button type="button" data-vol="month" aria-pressed="false">Tháng</button>
+      </div>
     </div>
+    <p class="hint" id="vol-sum"></p>
+    <div id="vol-chart" class="ch-box"></div>
+    <div class="ch-legend" id="vol-legend"></div>
+    <div id="vol-table"></div>
+    <ul class="insights" id="analysis-notes"></ul>
   </section>
 
-  <section class="panel" id="streak-wrap">
-    <div class="sec-head"><h2>Chuỗi ngày chạy</h2><span class="hint" id="streak-sum"></span></div>
-    <div class="dots-row" id="streak-dots"></div>
+  <section class="panel jump-sec" id="s-pace">
+    <div class="sec-head"><h2>Xu hướng pace</h2><span class="hint">120 ngày gần nhất</span></div>
+    <p class="hint" id="pace-sum"></p>
+    <div class="ch-legend" id="pace-legend" hidden>
+      <span><i class="lk-dot"></i>Từng buổi chạy</span>
+      <span><i class="lk-line"></i>Trung bình 5 buổi gần nhất</span>
+    </div>
+    <div id="pace-chart" class="ch-box"></div>
+    <div id="pace-table"></div>
   </section>
 
-  <section class="stat-grid" id="stat-grid"></section>
+  <section class="panel" id="dist">
+    <div class="sec-head"><h2>Phân bố cự ly</h2><span class="hint" id="dist-n"></span></div>
+    <div class="figs" id="dist-figs"></div>
+    <div id="dist-bars"></div>
+  </section>
 
-  <section>
-    <h2 class="sec-title">Thành tích tốt nhất</h2>
+  <section class="jump-sec" id="s-records">
+    <div class="sec-head"><h2 class="sec-title">Thành tích tốt nhất</h2><span class="hint">PR theo cự ly, sai lệch tối đa 5%</span></div>
     <div class="pr-grid" id="pr-grid"></div>
   </section>
 
@@ -56,16 +104,25 @@
     <p class="hint">Ước tính từ buổi chạy tốt nhất bằng công thức Riegel. Buổi chạy nhẹ cho kết quả chậm hơn khả năng thật, nên đây là mức thận trọng. Chạy thử hết sức một lần sẽ cho dự đoán sát hơn.</p>
   </section>
 
-  <section class="panel" id="ai">
-    <div class="sec-head"><h2>Báo cáo AI</h2><span class="hint" id="ai-when"></span></div>
-    <div class="ai-body" id="ai-body"></div>
-    <div class="panel-actions">
-      <button type="button" class="btn-sm primary" id="ai-run">Phân tích bằng AI</button>
-    </div>
-    <p class="hint" id="ai-status"></p>
+  <section class="panel jump-sec" id="s-goals">
+    <div class="sec-head"><h2>Mục tiêu</h2><button type="button" class="btn-sm" id="goal-add-toggle">+ Thêm mục tiêu</button></div>
+    <form id="goal-form" class="goal-form" hidden>
+      <label class="fld"><span>Loại mục tiêu</span>
+        <select id="goal-type">
+          <option value="weekly_km">Km mỗi tuần</option>
+          <option value="weekly_sessions">Số buổi mỗi tuần</option>
+          <option value="monthly_km">Km mỗi tháng</option>
+          <option value="pr_target">Mục tiêu thành tích (giây)</option>
+        </select>
+      </label>
+      <label class="fld"><span id="goal-target-label">Mục tiêu</span><input type="number" id="goal-target" min="0" step="any" required></label>
+      <label class="fld" id="goal-dist-wrap" hidden><span>Cự ly (km)</span><input type="number" id="goal-dist" min="0" step="any" value="10"></label>
+      <button type="submit" class="btn-sm primary">Lưu mục tiêu</button>
+    </form>
+    <div id="goal-list" class="goal-list"></div>
   </section>
 
-  <section class="panel" id="shoes">
+  <section class="panel jump-sec" id="shoes">
     <div class="sec-head"><h2>Giày chạy</h2><button type="button" class="btn-sm" id="shoe-add">+ Thêm giày</button></div>
     <p class="hint" id="shoe-sum"></p>
     <form id="shoe-form" class="shoe-form" hidden>
@@ -82,33 +139,13 @@
     <p class="hint">Km của mỗi đôi = km đã chạy trước đó + các buổi bạn gắn với nó ở tab Nhập nhanh (chạy và đi bộ, không tính môn khác). Ngưỡng 700 km là mức thường được khuyên cho giày đường nhựa; giày nhẹ hoặc đế mòn nhanh nên thay sớm hơn.</p>
   </section>
 
-  <section class="panel" id="analysis">
-    <h2>Phân tích xu hướng</h2>
-    <div class="chart" id="trend-chart" role="img" aria-label="Biểu đồ km 8 tuần gần nhất"></div>
-    <div id="analysis-notes"></div>
-  </section>
-
-  <section class="panel" id="month-wrap">
-    <h2>Km theo tháng</h2>
-    <div class="chart" id="month-chart" role="img" aria-label="Biểu đồ km 6 tháng gần nhất"></div>
-  </section>
-
-  <section class="panel">
-    <div class="sec-head"><h2>Mục tiêu</h2><button type="button" class="btn-sm" id="goal-add-toggle">+ Thêm mục tiêu</button></div>
-    <form id="goal-form" class="goal-form" hidden>
-      <label class="fld"><span>Loại mục tiêu</span>
-        <select id="goal-type">
-          <option value="weekly_km">Km mỗi tuần</option>
-          <option value="weekly_sessions">Số buổi mỗi tuần</option>
-          <option value="monthly_km">Km mỗi tháng</option>
-          <option value="pr_target">Mục tiêu thành tích (giây)</option>
-        </select>
-      </label>
-      <label class="fld"><span id="goal-target-label">Mục tiêu</span><input type="number" id="goal-target" min="0" step="any" required></label>
-      <label class="fld" id="goal-dist-wrap" hidden><span>Cự ly (km)</span><input type="number" id="goal-dist" min="0" step="any" value="10"></label>
-      <button type="submit" class="btn-sm primary">Lưu mục tiêu</button>
-    </form>
-    <div id="goal-list"></div>
+  <section class="panel jump-sec" id="ai">
+    <div class="sec-head"><h2>Báo cáo AI</h2><span class="hint" id="ai-when"></span></div>
+    <div class="ai-body" id="ai-body"></div>
+    <div class="panel-actions">
+      <button type="button" class="btn-sm primary" id="ai-run">Phân tích bằng AI</button>
+    </div>
+    <p class="hint" id="ai-status"></p>
   </section>
 
   <p class="foot">Số liệu được tính từ nhật ký chạy lưu trong trình duyệt này.</p>
@@ -124,6 +161,7 @@
 <script src="js/blocks.js"></script>
 <script src="js/races.js"></script>
 <script src="js/runlog.js"></script>
+<script src="js/charts.js"></script>
 <script src="js/goals.js"></script>
 <script src="js/shoes.js"></script>
 <script src="js/predict.js"></script>

@@ -77,6 +77,15 @@
     box.innerHTML = cards.map(function (c) {
       return '<div class="qstat"><div class="qv num">' + c.value + '</div><div class="ql">' + c.label + '</div></div>';
     }).join('');
+
+    var trend = el('qstat-trend');
+    if (!trend) return;
+    var series = RL.weeklyKmSeries(runs, 8).map(function (w) { return w.km; });
+    var last = series[series.length - 2], avg = series.slice(0, -1).reduce(function (a, v) { return a + v; }, 0) / 7;
+    trend.hidden = !series.some(function (v) { return v > 0; });
+    trend.innerHTML = window.Charts.spark(series)
+      + '<div class="qstat-trend-t"><span>Km 8 tuần gần nhất</span><span>Tuần trước <b class="num">' + C.fmtKm(last)
+      + ' km</b> · trung bình <b class="num">' + C.fmtKm(avg) + ' km</b></span></div>';
   }
 
   /* ================= danh sách giải ================= */
