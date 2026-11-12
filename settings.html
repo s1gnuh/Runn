@@ -72,36 +72,6 @@
     <p class="hint" id="sg-note"></p>
   </section>
 
-  <section class="panel" id="sync">
-    <h2>Đồng bộ nhiều thiết bị</h2>
-    <p class="hint">Dùng chung giải, giáo án, buổi đã đánh dấu, nhật ký chạy, mục tiêu và giày giữa điện thoại, máy tính (kể cả Safari lẫn app đã thêm vào màn hình chính). Máy nào sửa gì, các máy kia tự nhận trong vòng khoảng một phút. Ảnh chụp không đồng bộ: ảnh ở máy nào ở lại máy đó, còn số liệu thì đi khắp nơi. Giao diện, nhắc chạy và khoá Gemini là riêng từng máy.</p>
-    <div id="sy-off">
-      <div class="panel-actions"><button type="button" class="btn-sm primary" id="sy-create">Bật đồng bộ (máy này có dữ liệu chính)</button></div>
-      <p class="hint">Đã bật ở máy khác rồi? Nhập mã của máy đó để kết nối, dữ liệu máy này sẽ được gộp chứ không bị xóa.</p>
-      <div class="sy-join">
-        <label class="fld"><span>Mã đồng bộ</span><input type="text" id="sy-code" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="ABCDE-FGHJK-LMNPQ-RSTUV"></label>
-        <button type="button" class="btn-sm primary" id="sy-join">Kết nối</button>
-      </div>
-    </div>
-    <div id="sy-on" hidden>
-      <div class="sy-codebox">
-        <span class="sy-code num" id="sy-code-show" aria-label="Mã đồng bộ"></span>
-        <button type="button" class="btn-sm" id="sy-reveal" aria-pressed="false">Hiện mã</button>
-      </div>
-      <div class="panel-actions">
-        <button type="button" class="btn-sm primary" id="sy-now">Đồng bộ ngay</button>
-        <button type="button" class="btn-sm" id="sy-copy">Sao chép mã</button>
-        <button type="button" class="btn-sm" id="sy-link">Sao chép liên kết kết nối</button>
-      </div>
-      <p class="hint">Trên máy kia: mở app, vào Cài đặt, nhập mã này (hoặc mở liên kết kết nối). Ai có mã đều đọc và sửa được dữ liệu của bạn nên đừng đăng mã công khai.</p>
-      <div class="panel-actions">
-        <button type="button" class="btn-sm" id="sy-off-btn">Tắt đồng bộ ở máy này</button>
-        <button type="button" class="btn-sm" id="sy-wipe">Xóa dữ liệu trên máy chủ</button>
-      </div>
-    </div>
-    <p class="hint" id="sy-status" role="status"></p>
-  </section>
-
   <section class="panel" id="backup">
     <h2>Sao lưu &amp; khôi phục</h2>
     <p class="hint">Gói toàn bộ dữ liệu vào một file: giải, giáo án, buổi đã đánh dấu, ghi chú, mục tiêu và nhật ký kèm ảnh. Giữ file này lại trước khi xoá dữ liệu trình duyệt, cài lại app hay đổi sang máy khác — lúc cần chỉ việc khôi phục, không phải điền lại từ đầu.</p>
@@ -126,7 +96,6 @@
 <script src="js/templates.js"></script>
 <script src="js/blocks.js"></script>
 <script src="js/runlog.js"></script>
-<script src="js/sync.js"></script>
 <script src="js/notify.js"></script>
 <script src="js/vision.js"></script>
 <script src="js/backup.js"></script>

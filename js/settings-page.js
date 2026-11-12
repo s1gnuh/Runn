@@ -78,95 +78,6 @@
     }).catch(function (e) { vsStatus(e.message || 'Không kết nối được.', 'err'); });
   }
 
-  /* ---------- đồng bộ nhiều thiết bị ---------- */
-  var SY = window.Sync, syArmed = '', syShown = false;
-
-  function syStatus(msg, cls) {
-    var n = el('sy-status');
-    if (!n) return;
-    n.textContent = msg || '';
-    n.className = 'hint' + (cls ? ' ' + cls : '');
-  }
-  function ago(ms) {
-    var s = Math.round((Date.now() - ms) / 1000);
-    if (s < 45) return 'vừa xong';
-    if (s < 3600) return Math.round(s / 60) + ' phút trước';
-    if (s < 86400) return Math.round(s / 3600) + ' giờ trước';
-    return Math.round(s / 86400) + ' ngày trước';
-  }
-  function renderSync() {
-    if (!el('sync') || !SY) return;
-    var st = SY.status();
-    el('sy-off').hidden = st.enabled;
-    el('sy-on').hidden = !st.enabled;
-    if (st.enabled) {
-      el('sy-code-show').textContent = syShown ? SY.formatCode(st.code) : '•••••-•••••-•••••-•••••';
-      el('sy-reveal').textContent = syShown ? 'Ẩn mã' : 'Hiện mã';
-      el('sy-reveal').setAttribute('aria-pressed', syShown ? 'true' : 'false');
-      el('sy-off-btn').textContent = syArmed === 'off' ? 'Chắc chắn tắt?' : 'Tắt đồng bộ ở máy này';
-      el('sy-wipe').textContent = syArmed === 'wipe' ? 'Chắc chắn xóa trên máy chủ?' : 'Xóa dữ liệu trên máy chủ';
-      if (syArmed === 'off') el('sy-off-btn').setAttribute('data-armed', '1'); else el('sy-off-btn').removeAttribute('data-armed');
-      if (syArmed === 'wipe') el('sy-wipe').setAttribute('data-armed', '1'); else el('sy-wipe').removeAttribute('data-armed');
-      el('sy-now').disabled = st.busy;
-    }
-    if (st.busy) syStatus(st.joining ? 'Đang kết nối và lấy dữ liệu...' : 'Đang đồng bộ...', 'busy');
-    else if (st.error) syStatus(st.error, 'err');
-    else if (st.enabled) {
-      syStatus((st.last ? 'Đã đồng bộ ' + ago(st.last) : 'Chưa đồng bộ lần nào')
-        + (st.dirty ? ' · ' + st.dirty + ' thay đổi đang chờ gửi' : ''), st.last ? 'ok' : '');
-    } else syStatus('', '');
-  }
-  function copyText(text, what) {
-    function done() { C.toast('Đã sao chép ' + what, ''); }
-    function fallback() {
-      var t = document.createElement('textarea');
-      t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
-      document.body.appendChild(t); t.select();
-      try { document.execCommand('copy'); done(); } catch (e) { C.toast('Không sao chép được', 'Chép tay: ' + text); }
-      document.body.removeChild(t);
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
-    else fallback();
-  }
-  function bindSync() {
-    if (!el('sync') || !SY) return;
-    SY.subscribe(renderSync);
-    on('sy-create', 'click', function () {
-      SY.create().then(function () { syShown = true; renderSync(); C.toast('Đã bật đồng bộ', 'Chép mã sang máy kia để kết nối'); })
-        .catch(function () { renderSync(); });
-    });
-    on('sy-join', 'click', function () {
-      SY.join(el('sy-code').value).then(function () {
-        el('sy-code').value = ''; renderSync(); C.toast('Đã kết nối', 'Dữ liệu từ máy kia đã về máy này');
-      }).catch(function (e) { renderSync(); syStatus(e.message, 'err'); });
-    });
-    on('sy-code', 'keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el('sy-join').click(); } });
-    on('sy-now', 'click', function () { SY.syncNow().catch(function () {}); });
-    on('sy-reveal', 'click', function () { syShown = !syShown; renderSync(); });
-    on('sy-copy', 'click', function () { copyText(SY.formatCode(SY.status().code), 'mã đồng bộ'); });
-    on('sy-link', 'click', function () { copyText(SY.link(SY.status().code), 'liên kết kết nối'); });
-    on('sy-off-btn', 'click', function () {
-      if (syArmed !== 'off') { syArmed = 'off'; renderSync(); return; }
-      syArmed = ''; syShown = false;
-      SY.disable(false).then(function () { renderSync(); C.toast('Đã tắt đồng bộ', 'Dữ liệu trên máy này vẫn còn'); });
-    });
-    on('sy-wipe', 'click', function () {
-      if (syArmed !== 'wipe') { syArmed = 'wipe'; renderSync(); return; }
-      syArmed = ''; syShown = false;
-      SY.disable(true).then(function () { renderSync(); C.toast('Đã xóa dữ liệu trên máy chủ', 'Các máy khác không còn kết nối'); })
-        .catch(function (e) { renderSync(); syStatus(e.message, 'err'); });
-    });
-    // liên kết kết nối: settings.html#sync=MÃ -> điền sẵn ô nhập, người dùng bấm Kết nối
-    var m = /[#&]sync=([A-Za-z0-9-]+)/.exec(location.hash || '');
-    if (m && !SY.enabled()) {
-      el('sy-code').value = SY.formatCode(SY.normalizeCode(m[1]));
-      syStatus('Đã điền mã từ liên kết. Bấm "Kết nối" để lấy dữ liệu về máy này.', 'ok');
-      var box = el('sync'); if (box && box.scrollIntoView) box.scrollIntoView({ block: 'start' });
-    }
-    renderSync();
-    setInterval(function () { if (!SY.status().busy) renderSync(); }, 30000);
-  }
-
   /* ---------- dung lượng ---------- */
   // Ảnh chạy nằm trong IndexedDB nên cộng thẳng kích thước từng blob cho
   // chính xác; phần còn lại (vỏ app, font, bộ nhớ đệm) suy ra từ tổng mà
@@ -300,7 +211,6 @@
     on('nt-health', 'click', function () { window.Notify.health(); });
 
     renderTheme();
-    bindSync();
     renderStorage();
     renderVision();
     on('vs-save', 'click', saveVision);

@@ -28,23 +28,14 @@ window.Core = (function () {
   function qs(name) { return new URLSearchParams(location.search).get(name); }
 
   /* ================= store an toàn ================= */
-  // onSet: móc để js/sync.js biết khoá nào vừa đổi (đồng bộ nhiều thiết bị).
   var store = {
-    onSet: null,
     get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-    set: function (k, v) {
-      try { localStorage.setItem(k, v); } catch (e) {}
-      store.notify(k);
-    },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
     getJSON: function (k, fallback) {
       try { var v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? fallback : v; }
       catch (e) { return fallback; }
     },
-    setJSON: function (k, v) {
-      try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
-      store.notify(k);
-    },
-    notify: function (k) { if (store.onSet) { try { store.onSet(k); } catch (e) {} } }
+    setJSON: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   };
 
   /* ================= toast ================= */
