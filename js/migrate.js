@@ -4,8 +4,8 @@
 window.Migrate = (function (Core, Templates, Blocks, Races, RunLog) {
   'use strict';
   var FLAG = 'app-migrated-v2';
-  var BLOCK_ID = 'bac-ninh-legacy-2027';
-  var RACE_ID = 'bac-ninh-legacy-2027';
+  var BLOCK_ID = 'giai-10k-dau-tien';
+  var RACE_ID = 'giai-10k-dau-tien';
   var OLD_DB = 'bn27-strava';
 
   function hasOldData() {
@@ -43,7 +43,7 @@ window.Migrate = (function (Core, Templates, Blocks, Races, RunLog) {
     if (!hasOldData()) { Core.store.set(FLAG, '1'); return Promise.resolve(false); }
 
     // 1) Template: khuôn 12 tuần đã có sẵn trong Templates (periodized-12w),
-    //    là chính khuôn giáo án Bắc Ninh — không cần trích xuất lại.
+    //    là chính khuôn chu kỳ 12 tuần cổ điển — không cần trích xuất lại.
     var tpl = Templates.get(Templates.PERIODIZED_12W_ID);
 
     // 2) Block: gói sched/done/notes/mode cũ thành 1 block cố định ngày
@@ -61,15 +61,15 @@ window.Migrate = (function (Core, Templates, Blocks, Races, RunLog) {
       schedWk: (oldSched && oldSched.wk && typeof oldSched.wk === 'object') ? oldSched.wk : {},
       done: (oldDone && typeof oldDone === 'object') ? oldDone : {},
       notes: (oldNotes && typeof oldNotes === 'object') ? oldNotes : {},
-      raceTitle: 'Bắc Ninh Legacy Marathon 2027, 10 km',
+      raceTitle: 'Giải 10K đầu tiên, 10 km',
       raceDesc: 'Km 1–2 @ 7:00, km 3–8 @ 6:50, km 9–10 tăng tốc nếu còn sức.',
       raceKm: 10
     };
     Blocks.save(block);
 
-    // 3) Race: mốc Bắc Ninh Legacy Marathon 2027, liên kết block ở trên.
+    // 3) Race: giải 10K của giáo án cũ, liên kết block ở trên.
     var race = Races.create({
-      id: RACE_ID, name: 'Bắc Ninh Legacy Marathon 2027', date: '2027-01-10', distanceKm: 10,
+      id: RACE_ID, name: 'Giải 10K đầu tiên', date: '2027-01-10', distanceKm: 10,
       targetA: '68–70 phút', targetB: 'dưới 75 phút', targetC: 'hoàn thành và vẫn chạy được đến vạch đích',
       paceZones: [
         { label: 'Chạy nhẹ', type: 'easy', pace: '7:40–8:30', note: 'Nói được cả câu.' },
@@ -84,7 +84,7 @@ window.Migrate = (function (Core, Templates, Blocks, Races, RunLog) {
     Races.save(race);
 
     // 4) Nhật ký chạy: copy ảnh/số liệu từ IndexedDB cũ sang kho mới, gắn
-    //    blockId/raceId cho mọi bản ghi vì trước đây tất cả đều thuộc Bắc Ninh.
+    //    blockId/raceId cho mọi bản ghi vì trước đây tất cả đều thuộc giáo án duy nhất đó.
     return readOldLogs().then(function (rows) {
       var jobs = rows.filter(function (r) { return r && r.blob; }).map(function (r) {
         var run = RunLog.hydrate(r);

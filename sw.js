@@ -1,6 +1,6 @@
 // Service worker: app-shell cache cho cả trang chủ (index.html) lẫn trang
 // giải (race.html). Bump CACHE khi các file dưới đổi đáng kể.
-var CACHE = 'bn27-cache-v31';
+var CACHE = 'bn27-cache-v32';
 var STATE = 'bn27-state';
 var FONTS = 'bn27-fonts';
 var SHARE = 'bn27-share';   // ảnh vừa được chia sẻ từ app khác, chờ log.html nhận
@@ -215,7 +215,7 @@ self.addEventListener('sync', function (e) {
 self.addEventListener('push', function (e) {
   var d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : '' }; }
-  e.waitUntil(self.registration.showNotification(d.title || 'Giáo án Bắc Ninh 10K', {
+  e.waitUntil(self.registration.showNotification(d.title || 'RUNN · Nhật ký chạy', {
     body: d.body || '',
     icon: './icons/icon-192.png',
     badge: './icons/icon-192.png',

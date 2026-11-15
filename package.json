@@ -1,8 +1,8 @@
 {
-  "name": "bacninh-legacy-10k",
+  "name": "runn-nhat-ky-chay",
   "version": "1.0.0",
   "private": true,
-  "description": "Giáo án tập luyện 10K cho Bắc Ninh Legacy Marathon 2027",
+  "description": "RUNN · Nhật ký chạy: theo dõi km, chuỗi tuần, PR, giáo án và giải đấu cho người chạy bộ",
   "dependencies": {
     "@upstash/redis": "1.34.3",
     "web-push": "3.6.7"

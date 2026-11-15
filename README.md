@@ -1,6 +1,6 @@
 # Nhật ký chạy
 
-Ứng dụng web cá nhân theo dõi việc chạy bộ: km, streak, thành tích tốt nhất (PR), mục tiêu riêng — còn **giải đấu chỉ là một cột mốc trên dòng thời gian**, không phải trung tâm của app. Bắt đầu từ giáo án Bắc Ninh Legacy Marathon 2027, nhưng không dừng ở đó: mỗi giải tiếp theo tạo được ngay trong app, tái dùng lại đúng "khuôn" 12 tuần đã dùng cho Bắc Ninh nếu muốn.
+RUNN · Nhật ký chạy là ứng dụng web cho bất kỳ ai chạy bộ: theo dõi km, chuỗi tuần, thành tích tốt nhất (PR), mục tiêu riêng — còn **giải đấu chỉ là một cột mốc trên dòng thời gian**, không phải trung tâm của app. Mỗi người tự tạo giải mình muốn chạy, chọn một giáo án theo cấp độ, khuôn chu kỳ 12 tuần cổ điển, hoặc để app sinh giáo án riêng theo mục tiêu thời gian. Dữ liệu nằm trong trình duyệt của từng người, không cần tài khoản.
 
 Không có framework, không có bước build: HTML, CSS và JavaScript thuần, cộng vài serverless function trên Vercel để đẩy thông báo nhắc chạy. Cài được ra màn hình chính điện thoại như một app.
 
@@ -29,7 +29,7 @@ Giải không có giáo án (`blockId` rỗng) vẫn mở được trang riêng 
 | **Goal** (mục tiêu cá nhân) | Km/tuần, số buổi/tuần, km/tháng, hoặc mục tiêu thành tích theo cự ly — độc lập với mọi giải | `localStorage['app-goals']` |
 | **PR** | Thành tích tốt nhất theo cự ly (5K/10K/Half/Full), tính lại từ nhật ký mỗi khi cần, không lưu riêng | tính từ `bn-runs` |
 
-Giải Bắc Ninh Legacy Marathon 2027 chính là bản ghi đầu tiên của cả Template, Block và Race — không có gì đặc biệt về mặt code, chỉ là dữ liệu được tạo từ lần migrate đầu tiên.
+Không có giải hay giáo án nào được viết cứng cho một người cụ thể: mọi giải và block đều là dữ liệu người dùng tự tạo trong app.
 
 ---
 
@@ -154,7 +154,7 @@ Sao lưu / khôi phục bằng file JSON ở trang Cài đặt (gồm cả buổ
 
 ### Chuyển đổi dữ liệu cũ (migrate)
 
-Bản trước của app lưu mọi thứ dưới các khoá `bn27-*` (một giáo án Bắc Ninh duy nhất). Lần mở trang chủ đầu tiên sau khi cập nhật, `js/migrate.js` tự đọc các khoá đó và dựng thành template + block + race + nhật ký theo mô hình mới — **không xoá dữ liệu cũ**, chỉ đọc, giữ nguyên làm dự phòng. Chạy một lần duy nhất, đánh dấu bằng `localStorage['app-migrated-v2']`.
+Bản trước của app lưu mọi thứ dưới các khoá `bn27-*` (một giáo án duy nhất). Lần mở trang chủ đầu tiên sau khi cập nhật, `js/migrate.js` tự đọc các khoá đó và dựng thành template + block + race + nhật ký theo mô hình mới — **không xoá dữ liệu cũ**, chỉ đọc, giữ nguyên làm dự phòng. Chạy một lần duy nhất, đánh dấu bằng `localStorage['app-migrated-v2']`.
 
 ---
 
@@ -172,7 +172,7 @@ icons/            icon app (192, 512, apple-touch, favicon)
 
 js/
   core.js           tiện ích dùng chung: ngày giờ, store an toàn, pháo hoa canvas, toast
-  templates.js      khuôn giáo án tái sử dụng được (hiện có "periodized-12w" = khuôn Bắc Ninh)
+  templates.js      khuôn giáo án: 5 cấp độ, "periodized-12w" = chu kỳ 12 tuần 10K cổ điển, và bộ sinh giáo án riêng theo mục tiêu
   blocks.js         1 lần áp khuôn vào 1 giải: sinh buổi tập, tick/ghi chú, lịch tuỳ chỉnh
   races.js          CRUD giải đấu, liên kết block
   race-form.js      tạo / sửa / xoá giải và gắn / đổi / bỏ giáo án, dùng chung cho trang chủ và trang giải; sinh giáo án riêng theo mục tiêu
@@ -213,7 +213,7 @@ npx serve
 python -m http.server
 ```
 
-Mở `http://localhost:<port>/index.html` (trang chủ) hoặc `http://localhost:<port>/race.html?id=bac-ninh-legacy-2027` (sau khi đã mở trang chủ ít nhất một lần để migrate chạy).
+Mở `http://localhost:<port>/index.html` (trang chủ); trang của một giải là `race.html?id=<id giải>`, mở bằng cách bấm vào thẻ giải ở trang chủ.
 
 Phần `api/` chỉ chạy trên Vercel. Ở máy, app tự nhận ra không có máy chủ và lùi về nhắc cục bộ, mọi tính năng khác hoạt động bình thường.
 
@@ -282,7 +282,7 @@ Kết quả dạng `{"ok":true,"total":1,"sent":1,...}`. Nếu `sent` bằng 0 t
 
 **Ảnh biến mất.** Trình duyệt dọn IndexedDB khi máy thiếu chỗ. App có xin quyền lưu bền nhưng không phải trình duyệt nào cũng cho; xem dòng dung lượng trong tab ảnh để biết tình trạng.
 
-**Vào trang chủ không thấy giải Bắc Ninh / số liệu cũ biến mất.** Mở `index.html` ít nhất một lần để `migrate.js` chạy — nó đọc dữ liệu `bn27-*` cũ trong cùng trình duyệt đó và dựng lại. Nếu trước giờ chỉ mở thẳng `race.html`, hãy mở `index.html` trước.
+**Dữ liệu từ bản rất cũ của app (khoá `bn27-*`) không hiện.** Mở `index.html` ít nhất một lần để `migrate.js` chạy — nó đọc dữ liệu `bn27-*` cũ trong cùng trình duyệt đó và dựng lại. Nếu trước giờ chỉ mở thẳng `race.html`, hãy mở `index.html` trước.
 
 ---
 

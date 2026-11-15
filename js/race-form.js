@@ -14,7 +14,7 @@ window.RaceForm = (function (Core, Templates, Blocks, Races) {
     Templates.levels().forEach(function (t) {
       opts.push('<option value="' + t.id + '">' + Core.esc(t.name) + ' · đỉnh ' + Templates.summary(t).peakKm + ' km/tuần</option>');
     });
-    opts.push('<option value="' + Templates.PERIODIZED_12W_ID + '">Chu kỳ 12 tuần (kiểu Bắc Ninh 10K)</option>');
+    opts.push('<option value="' + Templates.PERIODIZED_12W_ID + '">Chu kỳ 12 tuần 10K (cổ điển)</option>');
     return opts.join('');
   }
 

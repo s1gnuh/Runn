@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A personal running-log PWA ("Nhật ký chạy") in vanilla HTML/CSS/JS — **no framework, no bundler, no build step** — plus a handful of Vercel serverless functions for push reminders. UI language and code comments are Vietnamese; keep both that way.
+A running-log PWA for general runners ("RUNN · Nhật ký chạy"; each user's data lives only in their own browser, no accounts) in vanilla HTML/CSS/JS — **no framework, no bundler, no build step** — plus a handful of Vercel serverless functions for push reminders. UI language and code comments are Vietnamese; keep both that way.
 
 ## Commands
 

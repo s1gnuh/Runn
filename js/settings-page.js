@@ -123,7 +123,7 @@
   }
   function searchPlace() {
     var q = el('wx-q').value.trim();
-    if (q.length < 2) { wxStatus('Nhập tên thành phố, ví dụ Bắc Ninh.', 'err'); return; }
+    if (q.length < 2) { wxStatus('Nhập tên thành phố, ví dụ Hà Nội.', 'err'); return; }
     wxStatus('Đang tìm...', 'busy');
     window.Weather.search(q).then(function (list) {
       var box = el('wx-results');

@@ -51,7 +51,7 @@ window.Templates = (function (Core) {
   /* ================= khuôn cũ (giữ nguyên để không vỡ dữ liệu) ================= */
   var PERIODIZED_12W = {
     id: 'periodized-12w',
-    name: 'Chu kỳ 12 tuần (kiểu Bắc Ninh 10K)',
+    name: 'Chu kỳ 12 tuần 10K (cổ điển)',
     days: [
       { k: 'mon', def: 0, name: 'Chạy nhẹ 1' }, { k: 'wed', def: 2, name: 'Chất lượng' },
       { k: 'fri', def: 4, name: 'Chạy nhẹ 2' }, { k: 'sun', def: 6, name: 'Chạy dài' }
@@ -140,7 +140,7 @@ window.Templates = (function (Core) {
     ]
   };
 
-  // Cấp 3 — đã có nền, muốn phá PR. Tương đương khuôn Bắc Ninh gốc.
+  // Cấp 3 — đã có nền, muốn phá PR. Tương đương khuôn chu kỳ 12 tuần cổ điển.
   var LV3 = {
     id: 'level-3-trung-cap', level: 3, name: 'Cấp 3 · Trung cấp — 12 tuần, 4 buổi/tuần',
     levelLabel: 'Trung cấp',
