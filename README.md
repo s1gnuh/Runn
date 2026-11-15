@@ -1,35 +1,98 @@
-# Nhật ký chạy
+<div align="center">
 
-RUNN · Nhật ký chạy là ứng dụng web cho bất kỳ ai chạy bộ: theo dõi km, chuỗi tuần, thành tích tốt nhất (PR), mục tiêu riêng — còn **giải đấu chỉ là một cột mốc trên dòng thời gian**, không phải trung tâm của app. Mỗi người tự tạo giải mình muốn chạy, chọn một giáo án theo cấp độ, khuôn chu kỳ 12 tuần cổ điển, hoặc để app sinh giáo án riêng theo mục tiêu thời gian. Dữ liệu nằm trong trình duyệt của từng người, không cần tài khoản.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="icons/logo-dark.png">
+  <img src="icons/logo.png" width="280" alt="RUNN">
+</picture>
 
-Không có framework, không có bước build: HTML, CSS và JavaScript thuần, cộng vài serverless function trên Vercel để đẩy thông báo nhắc chạy. Cài được ra màn hình chính điện thoại như một app.
+### Nhật ký chạy cho mọi người chạy bộ
+
+Ghi buổi chạy trong vài giây, theo một giáo án hợp sức mình, và biết rõ mình đang tiến bộ tới đâu.<br>
+Không cần tài khoản: dữ liệu nằm trong máy của bạn.
+
+[**Mở app → www.runn.io.vn**](https://www.runn.io.vn)
+
+![PWA](https://img.shields.io/badge/PWA-c%C3%A0i_%C4%91%C6%B0%E1%BB%A3c-0E2551?style=flat-square)
+![Offline](https://img.shields.io/badge/offline-c%C3%B3-1366D6?style=flat-square)
+![Không build](https://img.shields.io/badge/build-kh%C3%B4ng_c%E1%BA%A7n-FF7C1D?style=flat-square)
+![JavaScript](https://img.shields.io/badge/JavaScript-thu%E1%BA%A7n-5B5BD6?style=flat-square)
+![Vercel](https://img.shields.io/badge/deploy-Vercel-111111?style=flat-square)
+
+</div>
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/home.png" width="190" alt="Trang chủ"><br><sub><b>Trang chủ</b> · việc hôm nay</sub></td>
+    <td align="center"><img src="docs/screenshots/plan.png" width="190" alt="Lịch tập"><br><sub><b>Lịch tập</b> · giáo án 12 tuần</sub></td>
+    <td align="center"><img src="docs/screenshots/log.png" width="190" alt="Nhập nhanh"><br><sub><b>Nhập nhanh</b> · gõ 2 số là xong</sub></td>
+    <td align="center"><img src="docs/screenshots/stats.png" width="190" alt="Thống kê"><br><sub><b>Thống kê</b> · tuần này</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/load.png" width="190" alt="Tải tập luyện"><br><sub><b>Tải tập luyện</b> · tránh tăng quá nhanh</sub></td>
+    <td align="center"><img src="docs/screenshots/fitness.png" width="190" alt="Thể lực theo thời gian"><br><sub><b>Thể lực</b> · khi nào đạt mục tiêu</sub></td>
+    <td align="center"><img src="docs/screenshots/pace-dark.png" width="190" alt="Xu hướng pace, giao diện tối"><br><sub><b>Pace</b> · quy đổi trời mát</sub></td>
+    <td align="center"><img src="docs/screenshots/home-dark.png" width="190" alt="Trang chủ, giao diện tối"><br><sub><b>Giao diện tối</b></sub></td>
+  </tr>
+</table>
 
 ---
 
-## Hai trang
+## Mục lục
 
-| | `index.html` (trang chủ) | `race.html?id=...` (trang 1 giải) |
-| --- | --- | --- |
-| Vai trò | Bảng tổng hợp cá nhân | Chi tiết một giải cụ thể |
-| Nội dung | Km/streak/PR, mục tiêu, câu truyền động lực, phân tích xu hướng, danh sách mọi giải, cài đặt nhắc chạy | Lịch 12 tuần, lịch tháng, biểu đồ km/tuần, ảnh & nhật ký, pace/mục tiêu riêng của giải đó |
-| Dùng được khi | Luôn luôn | Chỉ khi giải đó có giáo án (block) |
-
-Giải không có giáo án (`blockId` rỗng) vẫn mở được trang riêng để ghi nhật ký chạy tự do — không bắt buộc mọi giải phải theo một kế hoạch 12 tuần.
+- [Điểm nổi bật](#điểm-nổi-bật)
+- [Bắt đầu sử dụng](#bắt-đầu-sử-dụng)
+- [Tính năng](#tính-năng)
+  - [Trang chủ](#trang-chủ) · [Lịch tập](#lịch-tập) · [Nhập nhanh](#nhập-nhanh) · [Thống kê](#thống-kê) · [Trang của một giải](#trang-của-một-giải) · [Cài đặt](#cài-đặt) · [Nhắc chạy](#nhắc-chạy)
+- [Cách app tính toán](#cách-app-tính-toán)
+- [Quyền riêng tư và dữ liệu](#quyền-riêng-tư-và-dữ-liệu)
+- [Ứng dụng cài được và dùng offline](#ứng-dụng-cài-được-và-dùng-offline)
+- [Dành cho nhà phát triển](#dành-cho-nhà-phát-triển)
+- [Gặp trục trặc](#gặp-trục-trặc)
 
 ---
 
-## Mô hình dữ liệu
+## Điểm nổi bật
 
-| Khái niệm | Là gì | Lưu ở đâu |
-| --- | --- | --- |
-| **Template** (khuôn) | Hình dạng một chu kỳ tập luyện — số tuần, giai đoạn, khối lượng easy/quality/long từng tuần — không gắn ngày cụ thể | `localStorage['app-templates']` |
-| **Block** | Một lần áp khuôn vào một giải: ngày bắt đầu, chế độ 3/4 buổi, lịch tuỳ chỉnh, buổi đã chạy, ghi chú | `localStorage['app-blocks']` |
-| **Race** (giải) | Mốc trên dòng thời gian: tên, ngày thi, cự ly, mục tiêu, pace zones, có thể gắn hoặc không gắn 1 block | `localStorage['app-races']` |
-| **Run** (nhật ký + ảnh) | Mỗi lần chạy, có hoặc không gắn vào 1 buổi tập cụ thể | IndexedDB `bn-runs` |
-| **Goal** (mục tiêu cá nhân) | Km/tuần, số buổi/tuần, km/tháng, hoặc mục tiêu thành tích theo cự ly — độc lập với mọi giải | `localStorage['app-goals']` |
-| **PR** | Thành tích tốt nhất theo cự ly (5K/10K/Half/Full), tính lại từ nhật ký mỗi khi cần, không lưu riêng | tính từ `bn-runs` |
+- **Biết hôm nay chạy gì, ghi lại trong một chạm.** Trang chủ cho thấy buổi tập hôm nay, pace nên chạy và tiến độ tuần. Chạy xong bấm **Đánh dấu đã chạy** là xong.
+- **Giáo án hợp sức mình.** Chọn 1 trong 5 cấp độ (từ người mới tới chạy cạnh tranh), hoặc nhập mục tiêu thời gian để app **sinh giáo án riêng** theo nhật ký 4 tuần gần nhất.
+- **Giáo án tự điều chỉnh.** Nghỉ ốm, tuần bận, hay tiến bộ nhanh hơn dự kiến, app đề xuất giảm khối lượng hoặc chỉnh pace, kèm lý do rõ ràng.
+- **Ghi buổi chạy nhanh.** Chỉ cần 2 trong 3 số km / pace / thời gian. Hoặc chụp màn hình Strava, AI đọc giúp, nhập được cả loạt ảnh một lúc.
+- **Biết mình có đang tiến bộ không.** Đường thể lực theo tuần, dự đoán 5K / 10K / Half / Full, và ước ngày đạt mục tiêu của giải sắp tới.
+- **Tập an toàn hơn.** Tải tập luyện so tuần này với 4 tuần trước để cảnh báo khi tăng quá nhanh, kèm tỷ lệ chạy nhẹ theo nguyên tắc 80/20.
+- **Công bằng với thời tiết.** Tự gắn nhiệt độ, độ ẩm vào từng buổi và quy đổi pace về điều kiện trời mát, để mùa hè không che mất tiến bộ thật.
+- **Riêng tư.** Không tài khoản, không máy chủ lưu nhật ký. Ảnh không bao giờ rời khỏi máy, trừ lúc bạn chủ động nhờ AI đọc.
 
-Không có giải hay giáo án nào được viết cứng cho một người cụ thể: mọi giải và block đều là dữ liệu người dùng tự tạo trong app.
+---
+
+## Bắt đầu sử dụng
+
+**1. Mở và cài app.** Vào [www.runn.io.vn](https://www.runn.io.vn), rồi thêm ra màn hình chính để dùng như app thật:
+
+| Thiết bị | Cách cài |
+| --- | --- |
+| Android (Chrome) | Menu ⋮ → **Cài đặt ứng dụng** (hoặc **Thêm vào màn hình chính**) |
+| iPhone / iPad (Safari) | Nút **Chia sẻ** → **Thêm vào MH chính** |
+| Máy tính (Chrome, Edge) | Biểu tượng cài đặt ở cuối thanh địa chỉ |
+
+**2. Tạo giải bạn muốn chạy.** Trang chủ → **+ Tạo giải mới** → nhập tên, ngày thi, cự ly, rồi chọn giáo án (xem bảng dưới). Không theo giáo án cũng được: chọn "Không dùng giáo án" và cứ ghi nhật ký tự do.
+
+**3. Ghi buổi chạy.** Bấm **Đánh dấu đã chạy** ở trang chủ, hoặc mở **Nhập nhanh** để ghi số liệu, ảnh, giày, chú thích.
+
+**4. Tuỳ chọn thêm** ở **Cài đặt**: dán Gemini API key miễn phí để đọc ảnh Strava và hỏi AI, chọn thành phố để tự gắn thời tiết, bật nhắc chạy buổi sáng, và thỉnh thoảng **xuất file sao lưu**.
+
+### Chọn giáo án
+
+| Giáo án | Thời gian | Buổi/tuần | Km/tuần lúc cao nhất | Dành cho |
+| --- | --- | --- | --- | --- |
+| **Cấp 1 · Khởi đầu** | 8 tuần | 3 | 16 | Mới chạy hoặc chạy lại sau thời gian dài nghỉ, chưa chạy liền được 30 phút |
+| **Cấp 2 · Cơ bản** | 10 tuần | 4 | 31 | Đã chạy đều vài tháng, chạy liền 5 km thoải mái |
+| **Cấp 3 · Trung cấp** | 12 tuần | 4 | 43 | Chạy 30–45 km/tuần, đã hoàn thành ít nhất một giải |
+| **Cấp 4 · Nâng cao** | 14 tuần | 5 | 73 | Chạy 50–70 km/tuần, chịu được hai buổi chất lượng mỗi tuần |
+| **Cấp 5 · Cạnh tranh** | 16 tuần | 6 | 101 | Trên 70 km/tuần, nhắm thứ hạng nhóm tuổi |
+| **Chu kỳ 12 tuần 10K (cổ điển)** | 12 tuần | 4 (hoặc 3) | 29 | Giáo án 10K kinh điển, đổi được giữa 4 và 3 buổi/tuần |
+| **Giáo án riêng theo mục tiêu** | 6–20 tuần | 3–6 | theo bạn | Nhập mục tiêu, ví dụ 10K trong 52:30, app tự sinh |
+
+Mọi giáo án đều chia giai đoạn: nền tảng → xây sức bền → đặc thù cự ly → giảm tải → tuần thi đấu.
 
 ---
 
@@ -37,175 +100,286 @@ Không có giải hay giáo án nào được viết cứng cho một người c
 
 ### Trang chủ
 
-- **Buổi tiếp theo** gộp từ mọi block đang active (nhiều giải chạy song song vẫn hiện đúng buổi gần nhất). Thẻ hiện luôn mô tả buổi, pace gợi ý và tiến độ tuần này theo giáo án; buổi hôm nay có nút **Đánh dấu đã chạy** (pháo hoa ngay tại chỗ) và **Nhập số liệu** (mở Nhập nhanh đúng ngày, tự đánh dấu buổi khi lưu). Bỏ đánh dấu thì vào Lịch tập.
-- **Thống kê**: km tuần này, km tháng này, streak (số ngày chạy liên tục), tổng km/số buổi từ trước tới giờ.
-- **PR theo cự ly**: 5K, 10K, Half, Full — tự nhận ra từ các run có `km` khớp cự ly chuẩn (sai số ±5%) và có ghi thời gian.
-- **Mục tiêu cá nhân**: km/tuần, số buổi/tuần, km/tháng, hoặc mục tiêu thành tích — mỗi mục tiêu có thanh tiến độ riêng.
-- **Phân tích xu hướng** (rule-based, không AI/ML): biểu đồ km 8 tuần dương lịch gần nhất, cảnh báo khi tuần này tăng hơn 10% so với trung bình 7 tuần trước (đúng nguyên tắc "tăng tải không quá 10%/tuần"), tỷ lệ hoàn thành buổi chất lượng/dài trong 4 tuần gần đây nếu đang có block active.
-- **Danh sách giải** kèm nút **Tạo giải mới** — nhập tên/ngày thi/cự ly, chọn áp khuôn 12 tuần hoặc không, bấm là có ngay trang giải riêng. Cả thẻ giải bấm được; **sửa / xoá giải** nằm ở mục **Quản lý giải** cuối trang của giải đó.
-- **200 câu truyền động lực** tiếng Anh, đổi câu khi bấm nút hoặc tự đổi mỗi khi có gì đáng ăn mừng.
+| | |
+| --- | --- |
+| **Buổi tiếp theo** | Gộp từ mọi giải đang có giáo án. Hiện tên buổi, mô tả, pace gợi ý theo kết quả của bạn và tiến độ tuần này, ví dụ "2/4 buổi · 13/35,5 km". |
+| **Đánh dấu đã chạy** | Một chạm ngay trên trang chủ, có pháo hoa. Thẻ ghi "✓ Đã xong hôm nay" rồi chuyển sang buổi kế tiếp. |
+| **Nhập số liệu** | Mở Nhập nhanh đúng ngày của buổi; lưu xong là buổi tự được đánh dấu. |
+| **Tóm tắt nhanh** | Chuỗi tuần, km tuần này, tổng km, cột km 8 tuần gần nhất. Bấm vào để mở Thống kê. |
+| **Câu truyền động lực** | 200 câu, chạm để đổi câu. |
+| **Các giải đấu** | Thẻ có đếm ngược, giáo án và thanh tiến độ; bấm vào để mở trang giải. Tạo giải mới ngay tại đây. |
 
-### Trang 1 giải
+### Lịch tập
 
-- **Lịch 12 tuần** chia 5 giai đoạn: Nền tảng → Xây sức bền → Đặc thù cự ly → Giảm tải → Tuần thi đấu. Chuyển được giữa chế độ 4 buổi hoặc 3 buổi mỗi tuần.
-- **Lịch tháng** với chấm màu theo loại buổi. Bấm vào một ngày để xem buổi tập, số liệu Strava, ghi chú và ảnh của ngày đó, đánh dấu đã chạy ngay tại chỗ.
-- **Đổi ngày chạy** mặc định cho cả giáo án, hoặc riêng từng tuần.
-- **Ghi chú từng buổi** cho cảm nhận, đau mỏi, thời tiết.
-- **Biểu đồ km theo tuần**: cột nhạt là dự kiến, phần tô đậm là đã chạy.
-- **Tham khảo**: pace zones, mục tiêu A/B/C và chiến thuật ngày thi riêng của giải đó, cộng nguyên tắc tập chung.
+- **Thẻ tổng quan**: số ngày tới giải, số buổi và km đã chạy, biểu đồ km từng tuần (kế hoạch và đã chạy). Chạm vào một cột để mở tuần đó.
+- **Gợi ý chỉnh giáo án**: đề xuất giảm khối lượng hay chỉnh pace, kèm lý do và danh sách buổi sẽ đổi. Bấm **Áp dụng**, hoặc bật **Tự động áp dụng gợi ý mỗi khi mở app**. Xem [cách tính](#tự-điều-chỉnh-giáo-án).
+- **Lịch tháng** chấm màu theo loại buổi: nhẹ, chất lượng, dài, thi đấu, đã chạy, bỏ lỡ. Chạm một ngày để xem buổi tập và nhật ký của ngày đó.
+- **Lịch tuần** cho cả giáo án, mỗi buổi có ô tích, ghi chú, pace gợi ý.
+- **Sửa buổi**: đổi loại, tên, km, mô tả; có nút **Về bản gốc**. **Xoá buổi**: chuyển vào mục "Buổi đã xoá", khôi phục được bất cứ lúc nào. Khuôn giáo án gốc không bao giờ bị đụng tới.
+- **Đổi ngày chạy** cho cả giáo án hoặc riêng từng tuần bận.
 
-### Nhập nhanh (`log.html`)
+### Nhập nhanh
 
-Form nhập một buổi chạy: ngày, loại (chạy / đi bộ / khác), km, pace, thời gian, chú thích, và ảnh nếu muốn. Chỉ cần nhập **hai trong ba** số km / pace / thời gian, số còn lại tự tính. Nếu ngày đó có buổi trong Lịch tập chưa đánh dấu, ô "Đánh dấu xong buổi…" được tick sẵn nên lưu một lần là xong cả hai. Bên dưới là danh sách các buổi đã nhập gần đây, mỗi buổi có **Sửa** và **Xóa** (bấm hai lần để xác nhận).
+- **Form gọn trong một màn hình**: ngày (có nút Hôm nay / Hôm qua) → km, pace, thời gian → loại (chạy / đi bộ / khác) → giày → chú thích. Nhập **2 trong 3 số**, số còn lại tự tính.
+- **Tự đánh dấu buổi trong giáo án**: nếu ngày đó có buổi chưa xong, ô "Đánh dấu xong buổi…" được tích sẵn.
+- **Đọc ảnh Strava bằng AI**: chọn, kéo thả hoặc dán (Ctrl+V) ảnh chụp màn hình, Gemini đọc km, pace, thời gian, ngày và phân biệt chạy với đi bộ. Đi bộ không tính vào chuỗi, PR, dự đoán.
+- **Nhập hàng loạt**: chọn nhiều ảnh cùng lúc, mỗi ảnh một dòng để soát, đọc song song 3 ảnh một lúc. Dòng có vẻ trùng một buổi đã lưu (cùng ngày, cùng km) tự bỏ tích.
+- **Chia sẻ thẳng từ Strava** (Android, app đã cài): trong Strava bấm Chia sẻ ảnh → chọn "Nhật ký chạy", app mở sẵn ảnh và đọc luôn.
+- **Thời tiết tự gắn**: mỗi buổi chạy, đi bộ được gắn nhiệt độ, độ ẩm và hiện "≈ 6:05/km khi trời mát".
+- **Mất mạng vẫn lưu được**: việc đọc ảnh và lấy thời tiết được xếp hàng, có mạng lại thì app tự làm nốt.
+- **Giày**: chọn giày cho từng buổi; app báo khi đôi giày chạm 80% và 100% ngưỡng nên thay.
+- **Nhật ký có tìm kiếm và bộ lọc**: tìm theo chú thích, giày, ngày, không cần gõ dấu ("dau goi" tìm ra "đau gối"); lọc theo loại, khoảng ngày, km, giày, có ảnh; sắp xếp mới nhất, cũ nhất, dài nhất, pace nhanh nhất. Mỗi buổi có **Sửa** và **Xoá**.
 
-Buổi nhập tay không cần ảnh. Có ảnh mà không có số liệu thì được lưu như "ảnh chạy" (kỷ niệm).
+### Thống kê
 
-### Đọc ảnh Strava bằng Gemini (`js/vision.js`)
+| Mục | Nội dung |
+| --- | --- |
+| **Tuần này** | Vòng tiến độ theo mục tiêu km/tuần (hoặc trung bình 8 tuần), km từng ngày |
+| **Ô số liệu** | Km và số buổi tháng này so với cùng kỳ tháng trước, chuỗi tuần đạt, pace trung bình 30 ngày, tổng quãng đường, tổng thời gian |
+| **Lịch hoạt động** | Lịch nhiệt từng ngày; chuỗi ngày hiện tại và dài nhất |
+| **Khối lượng** | Km theo tuần hoặc tháng trong 12 kỳ, đường trung bình, nhận xét xu hướng (tăng quá 10%, tỷ lệ hoàn thành buổi chất lượng và buổi dài) |
+| **Tải tập luyện** | Tỷ lệ tải 7 ngày / 4 tuần trước, vùng an toàn 0,8–1,3, cơ cấu cường độ 28 ngày |
+| **Xu hướng pace** | Từng buổi và trung bình 5 buổi trong 120 ngày; chuyển giữa pace thực tế và **quy đổi trời mát**; so buổi nóng ẩm với buổi trời mát |
+| **Thể lực theo thời gian** | Dự đoán 10K của từng tuần trong 26 tuần, xu hướng 8 tuần, ước **ngày đạt mục tiêu** của giải sắp tới |
+| **Phân bố cự ly** | Số buổi theo nhóm cự ly, buổi dài nhất |
+| **Thành tích tốt nhất** | PR 5K, 10K, Half, Full tự nhận ra từ nhật ký |
+| **Dự đoán thành tích** | Thời gian, pace, khoảng sai số, độ tin cậy cho 4 cự ly; vùng pace gợi ý (nhẹ, tempo, interval, pace Full) |
+| **Mục tiêu** | Km/tuần, số buổi/tuần, km/tháng, mục tiêu thành tích, có thanh tiến độ |
+| **Giày chạy** | Km từng đôi, mức mòn, ước số tuần còn dùng, gán hàng loạt buổi chưa có giày, cho đôi cũ nghỉ |
+| **Báo cáo AI** | Báo cáo 5 mục: tổng quan, điểm mạnh, cần lưu ý, dự đoán và chiến lược, gợi ý tuần tới |
+| **Hỏi AI** | Hỏi tự do, ví dụ "Tuần này chạy dài bao nhiêu?" hay "Nghỉ ốm thì quay lại thế nào?". AI chỉ dùng số liệu app đã tính. |
 
-Chọn, kéo thả hoặc dán (Ctrl+V) một ảnh chụp màn hình Strava, app gửi ảnh cho Gemini đọc khoảng cách, pace, thời gian rồi điền sẵn vào form. Cần dán API key ở **Cài đặt → Đọc ảnh Strava tự động** (lấy miễn phí ở Google AI Studio). Model mặc định `gemini-3.5-flash-lite`, đổi được trong Cài đặt.
+### Trang của một giải
 
-Những điểm làm nó nhanh:
+Đếm ngược tới ngày thi, thanh tiến độ, buổi tiếp theo, biểu đồ km theo tuần, chọn thứ chạy mặc định cho từng loại buổi, và tab **Tham khảo** (các mức pace, mục tiêu A/B/C, nguyên tắc tập). Cuối trang là mục **Quản lý giải**: sửa tên, ngày, cự ly, đổi giáo án (kể cả sinh lại giáo án riêng), hoặc xoá giải. Xoá giải không xoá nhật ký chạy.
 
-- Gọi thẳng từ trình duyệt tới Google, không qua serverless function nên bớt một chặng mạng.
-- Ảnh được giải mã một lần, rồi thu nhỏ còn 960px (JPEG 0,72) để gửi đi, song song với việc tạo bản 1400px để lưu.
-- Ép trả JSON theo schema 3 trường, `temperature: 0`, nên chỉ sinh vài chục token.
-- Gửi ngay khi chọn ảnh; trong lúc chờ, ảnh xem trước hiện liền và ô số liệu nhấp nháy.
-- `preconnect` tới Google khi mở trang để bắt tay TLS xong từ trước.
+### Cài đặt
 
-**Phân biệt chạy và đi bộ**: Gemini còn trả về loại hoạt động (`run` / `walk` / `other`). Đi bộ có trường "bước chân" và biểu tượng giày nằm bẹt, không có pace; chạy bộ có pace và biểu tượng giày nhấc gót. Loại được điền sẵn vào ô "Loại" (sửa lại được). Đi bộ không tính vào streak, PR, dự đoán và không tự đánh dấu buổi trong giáo án.
-
-Gemini chỉ lấy km, pace, thời gian, ngày và loại hoạt động; các trường khác trong ảnh như độ cao leo (Elev Gain) bị bỏ qua. Nhấn giữ icon app trên Android có lối tắt "Nhập nhanh" và "Lịch tập".
-
-**Chia sẻ thẳng từ Strava** (Android, app đã cài ra màn hình chính): trong Strava bấm Chia sẻ ảnh → chọn "Nhật ký chạy", app mở Nhập nhanh với ảnh đã nạp và đọc luôn. Service worker nhận ảnh qua `POST ./share` (Web Share Target), iOS chưa hỗ trợ.
-
-**Mất mạng**: lưu buổi lúc không có mạng thì việc đọc ảnh và gắn thời tiết được xếp hàng (`localStorage['app-pending']`), có mạng lại hoặc lần mở Nhập nhanh sau app tự làm nốt.
-
-**Nhập hàng loạt**: chọn nhiều ảnh cùng lúc (hoặc kéo thả, dán nhiều ảnh) thì app mở bảng hàng loạt. Mỗi ảnh là một dòng, Gemini đọc song song 3 ảnh một lúc, đọc luôn cả **ngày** nếu ảnh có ghi (không có thì lấy theo thời điểm chụp ảnh). Số nào thiếu thì tự tính từ hai số còn lại. Dòng có vẻ trùng một buổi đã lưu (cùng ngày, cùng km) bị bỏ tick sẵn. Soát lại rồi **Lưu tất cả**; tùy chọn tự đánh dấu buổi tương ứng trong Lịch tập theo ngày.
-
-API key nằm trong `localStorage` của trình duyệt, gửi thẳng cho Google, và **không** có trong file sao lưu. Nên giới hạn key theo tên miền của app trong Google AI Studio.
-
-### Thể lực theo thời gian (trang Thống kê)
-
-Dự đoán 10K được tính lại tại từng tuần trong 26 tuần gần nhất, mỗi lần chỉ với các buổi chạy tính đến tuần đó, nên đường này phản ánh tiến bộ thật thay vì nhiễu của một buổi. Bật "Quy đổi trời mát" thì cả đường thể lực cũng dùng pace đã hiệu chỉnh nhiệt. Xu hướng 8 tuần gần nhất (hồi quy tuyến tính) được kéo dài để ước **ngày đạt mục tiêu A** của giải sắp tới và dự đoán tại ngày thi.
-
-### Hỏi AI về dữ liệu của mình
-
-Dưới báo cáo AI có ô hỏi tự do ("Tuần này chạy dài bao nhiêu?", "Nghỉ ốm thì quay lại thế nào?"). Mỗi câu hỏi gửi kèm đúng bộ số liệu của báo cáo (tải tập luyện, dự đoán, pace quy đổi, giáo án) và 4 lượt hỏi đáp trước đó. AI không tự tính số. Lịch sử giữ 20 lượt trong `localStorage['app-ai-chat']`.
-
-### Giáo án riêng theo mục tiêu thời gian
-
-Khi tạo hoặc sửa giải, chọn **Giáo án riêng theo mục tiêu thời gian**, nhập mục tiêu (ví dụ 55:00) và số buổi mỗi tuần. App sinh giáo án (`Templates.generate`): pace buổi chất lượng từ mục tiêu (quy về pace 10K tương đương bằng Riegel, cùng tỷ lệ với vùng pace của phần dự đoán), pace chạy nhẹ theo thể lực hiện tại nếu chậm hơn mục tiêu; khối lượng khởi điểm bằng trung bình 4 tuần gần nhất trong nhật ký, tăng tối đa 10% mỗi tuần tới đỉnh theo cự ly, tuần thứ 4 giảm tải, 2–3 tuần cuối giảm dần, một buổi chạy thử ở đầu giai đoạn đặc thù để đối chiếu mục tiêu. Cần còn ít nhất 6 tuần. Giáo án sinh ra có cùng cấu trúc với giáo án theo cấp độ nên sửa/xóa buổi và tự điều chỉnh hoạt động như thường.
-
-### Dự đoán thành tích & báo cáo AI (trang Thống kê)
-
-**Dự đoán** (`js/predict.js`, tính tại máy, không cần mạng): từ các buổi chạy có km (từ 2,5 km) và thời gian, ước tính thời gian + pace trung bình cho **5K / 10K / Half / Full** bằng công thức Riegel (`T = t × (D/d)^e`, e = 1,06 / 1,06 / 1,07 / 1,08). Mỗi cự ly lấy nỗ lực cho kết quả tốt nhất trong 120 ngày qua, chỉ nhận buổi dài ít nhất 1/4 cự ly cần dự đoán. Half/Full cộng thêm tối đa 15% nếu buổi chạy dài nhất 60 ngày qua còn ngắn so với cự ly. Mỗi dự đoán có khoảng sai số và độ tin cậy (thấp / vừa / cao) tùy số buổi gần đây và độ dài nguồn.
-
-**Pace gợi ý** suy ra từ dự đoán 10K và 5K: chạy nhẹ/dài, tempo, interval, pace Full. Chúng cập nhật theo mỗi buổi chạy mới và hiện thẳng trong Lịch tập, ngay dưới các buổi chưa chạy ("Pace gợi ý theo kết quả của bạn").
-
-**Báo cáo AI**: nút **Phân tích bằng AI** gửi số liệu (km 8 tuần, 15 buổi gần nhất, PR, dự đoán và pace gợi ý đã tính sẵn, giải sắp tới, giáo án, mục tiêu — không gồm ảnh) cho Gemini, nhận lại báo cáo tiếng Việt 5 mục: tổng quan, điểm mạnh, cần lưu ý, dự đoán & chiến lược, gợi ý tuần tới. AI chỉ diễn giải, các con số dự đoán luôn do app tính nên không bị "bịa". Báo cáo được lưu lại trong trình duyệt, cần bấm "Phân tích lại" khi có dữ liệu mới.
-
-### Sửa / xóa trong Lịch tập (`plan.html`)
-
-- **Sửa buổi tập**: đổi loại (nhẹ / chất lượng / dài), tên, km và mô tả của từng buổi. Buổi đã sửa có nhãn "đã sửa" và nút **Về bản gốc**. Buổi thi đấu chỉ đổi được tên, km, mô tả.
-- **Xóa buổi tập**: bấm hai lần để xác nhận. Buổi bị xóa biến khỏi lịch và mọi thống kê, nằm trong mục **Buổi đã xóa** để **Khôi phục** bất cứ lúc nào. Buổi thi đấu không xóa được.
-- Các thay đổi này nằm trong `block.edits` / `block.removed`, khuôn gốc không bị đụng tới.
-- Nhật ký chạy của ngày đang chọn cũng có **Sửa** (mở form Nhập nhanh) và **Xóa**.
-
-### Tự điều chỉnh giáo án (`js/adapt.js`, panel đầu trang Lịch tập)
-
-Quy tắc minh bạch, không dùng AI. Chỉ đụng tới buổi **chưa chạy**, không đụng buổi thi đấu, tuần thi đấu cuối và buổi bạn tự sửa. Mỗi gợi ý có lý do, danh sách buổi sẽ đổi và nút **Áp dụng**; bật ô **Tự động áp dụng** thì app tự áp mỗi khi mở (mặc định tắt).
-
-- **Khối lượng, 7 ngày tới**: nghỉ từ 10 ngày thì về khoảng 55% kế hoạch; tuần qua chạy dưới 60% kế hoạch thì về khoảng 110% số đã chạy (không dưới 75% kế hoạch); tuần qua nhiều hơn 30% / 50% so với trung bình 4 tuần trước thì giảm 8% / 15%. Giảm nặng (còn 80% trở xuống) còn đổi buổi chất lượng thành chạy nhẹ. Hết điều kiện thì gợi ý **khôi phục** buổi gốc. Luôn tính trên km gốc nên chạy lại nhiều lần không giảm chồng.
-- **Pace, 21 ngày tới**: so pace ghi sẵn trong buổi ("Pace 7:40–8:30", "5 × 3 phút @ 6:40") với vùng pace suy từ dự đoán 10K. Chỉ sửa khi lệch quá 5% (chạy nhẹ) hoặc 3–4% (chất lượng), mỗi lần tối đa 15%, và chỉ khi độ tin cậy dự đoán không phải "thấp".
-- Buổi được chỉnh có nhãn "tự điều chỉnh", lý do hiện dưới buổi, và nút **Hoàn tác** về bản gốc. Thay đổi nằm trong `block.edits` + `block.adj`.
-
-### Giày chạy (`js/shoes.js`, panel trong Thống kê)
-
-Mỗi đôi có tên, km đã chạy trước khi dùng app, ngưỡng nên thay (mặc định 700 km) và ngày bắt đầu dùng. Ở Nhập nhanh, mỗi buổi chạy / đi bộ chọn được giày (mặc định là đôi được đặt mặc định; nhập hàng loạt chọn một đôi cho cả lô). Km của đôi giày được tính lại từ nhật ký mỗi lần nên sửa hoặc xóa buổi luôn cho số đúng. Từ 80% ngưỡng hiện "Sắp thay", vượt 100% hiện "Nên thay", và khi một buổi vừa lưu làm đôi giày chạm mốc thì app báo ngay. Có ước tính số tuần còn dùng được theo nhịp 4 tuần gần nhất, nút **Gán các buổi chưa có giày** cho dữ liệu cũ, và **Cho nghỉ** để giữ lịch sử mà ẩn khỏi danh sách chọn.
-
-### Động lực
-
-**Pháo hoa ăn mừng** khi đánh dấu xong một buổi, to dần theo mức độ: buổi nhẹ → chất lượng/dài → trọn một tuần → mốc 25/50/75% giáo án → ngày thi đấu. Tự tắt khi hệ điều hành bật chế độ giảm chuyển động.
+- **Giao diện**: sáng, tối, hoặc theo máy.
+- **Đọc ảnh Strava tự động**: Gemini API key (lấy miễn phí ở [Google AI Studio](https://aistudio.google.com/apikey)), tên model, nút thử kết nối.
+- **Thời tiết lúc chạy**: tìm thành phố hoặc dùng vị trí hiện tại, chọn giờ bạn hay chạy, lấy thời tiết cho các buổi cũ, và tuỳ chọn kèm thời tiết vào thông báo sáng.
+- **Nhắc chạy trên điện thoại**: bật/tắt, giờ nhắc khi app mở, gửi thử, kiểm tra máy chủ.
+- **Dung lượng**: ảnh chiếm bao nhiêu, còn chỗ cho khoảng bao nhiêu ảnh, dữ liệu đã được lưu bền chưa.
+- **Sao lưu và khôi phục**: một file JSON chứa toàn bộ giải, giáo án, nhật ký kèm ảnh, giày, mục tiêu. Khôi phục là **gộp** vào dữ liệu hiện có, không xoá gì.
 
 ### Nhắc chạy
 
-Cài đặt ở **trang chủ**, áp dụng chung cho mọi giải đang có giáo án active — không cần bật riêng từng giải. Thông báo đẩy lúc **6:30 sáng mỗi ngày**, nội dung tuỳ ngày:
+Thông báo đẩy lúc **6:30 sáng** (giờ Việt Nam) kể cả khi đã đóng app, áp dụng cho mọi giải đang có giáo án:
 
 | Hôm nay | Thông báo |
 | --- | --- |
-| Có buổi chạy (ở bất kỳ block active nào), chưa đánh dấu xong | "Hôm nay có buổi chạy" kèm tên buổi. Nếu bật **Kèm thời tiết sáng nay** ở Cài đặt → Thời tiết, thêm dòng nhiệt độ/độ ẩm lúc giờ chạy, mức chậm do nóng ẩm, pace nên chạy, và gợi ý đổi buổi chất lượng thành chạy nhẹ khi quá nóng. Khi đó toạ độ đã làm tròn (~10 km) và giờ chạy được gửi lên máy chủ cùng đăng ký. |
-| Có buổi chạy, đã đánh dấu xong | im lặng |
-| Không có buổi nào, nhưng vẫn trong khoảng ngày của ít nhất 1 block active | "Hôm nay không có buổi chạy" kèm một gợi ý ngẫu nhiên từ `rest-tips.json` — chống đẩy, squat, plank, tập chân |
-| Không có block nào đang active | im lặng |
+| Có buổi chạy chưa đánh dấu | "Hôm nay có buổi chạy" kèm tên buổi. Nếu bật **Kèm thời tiết sáng nay**: thêm nhiệt độ, độ ẩm lúc giờ chạy, mức chậm do nóng ẩm, pace nên chạy, và gợi ý đổi buổi chất lượng thành chạy nhẹ khi quá nóng |
+| Buổi hôm nay đã xong | Không làm phiền |
+| Ngày nghỉ trong giáo án | "Hôm nay không có buổi chạy" kèm một bài tập bổ trợ (15 gợi ý: chống đẩy, squat, plank…) |
+| Không có giáo án nào đang chạy | Không làm phiền |
+
+Trên iPhone, thông báo chỉ hoạt động khi app đã được thêm ra màn hình chính và mở từ icon đó (iOS 16.4 trở lên).
 
 ---
 
-## Dữ liệu được lưu ở đâu
+## Cách app tính toán
 
-Mặc định mọi thứ nằm trong trình duyệt của bạn:
+Mọi con số đều do app tính bằng quy tắc minh bạch, chạy ngay trên máy. AI chỉ diễn giải những con số đó, không tự tính số nào.
 
-- `localStorage` — template, block, race, goal, tab đang mở, cài đặt nhắc chạy
-- `IndexedDB` (`bn-runs`) — nhật ký chạy và ảnh. App xin quyền `persist` để trình duyệt không tự dọn khi máy thiếu chỗ, và hiện dung lượng đang dùng trong tab ảnh
-- `Cache Storage` — bản sao "hôm nay có gì" cho service worker đọc khi chạy nền, vì service worker không đọc được `localStorage`
+### Dự đoán thành tích
 
-**Khi bật nhắc chạy bằng push**, một phần dữ liệu được gửi lên máy chủ và lưu trong Upstash Redis: danh sách ngày tập (gộp từ mọi block active) kèm tên buổi và cờ đã-chạy, múi giờ, giờ nhắc, và địa chỉ đăng ký nhận thông báo của trình duyệt. **Ảnh không bao giờ rời khỏi máy bạn.** Tắt nhắc nhở thì bản ghi đó bị xoá khỏi máy chủ.
+Công thức Riegel `T = t × (D / d)^e`, với e = 1,06 (5K, 10K), 1,07 (Half), 1,08 (Full).
 
-Sao lưu / khôi phục bằng file JSON ở trang Cài đặt (gồm cả buổi nhập tay không có ảnh và danh sách giày). API key Gemini cố ý không nằm trong file sao lưu. Muốn chuyển dữ liệu sang máy khác thì xuất file ở máy cũ rồi khôi phục ở máy mới.
+- Chỉ nhận buổi chạy có cả km (từ 2,5 km) lẫn thời gian, pace trong khoảng 2:30–12:00/km, trong 120 ngày gần nhất.
+- Mỗi cự ly lấy nỗ lực cho kết quả tốt nhất, nhưng chỉ từ buổi dài ít nhất 1/4 cự ly đó.
+- Half và Full bị cộng thêm tối đa 15% nếu buổi dài nhất 60 ngày qua chưa đạt 60% (Half) hoặc 50% (Full) cự ly.
+- Độ tin cậy (thấp / vừa / cao) tuỳ số buổi gần đây và độ dài buổi làm nguồn.
 
-### Chuyển đổi dữ liệu cũ (migrate)
+**Vùng pace** suy từ pace 10K dự đoán: chạy nhẹ ×1,14–1,28, tempo ×1,03–1,05, interval ≈ pace 5K.
 
-Bản trước của app lưu mọi thứ dưới các khoá `bn27-*` (một giáo án duy nhất). Lần mở trang chủ đầu tiên sau khi cập nhật, `js/migrate.js` tự đọc các khoá đó và dựng thành template + block + race + nhật ký theo mô hình mới — **không xoá dữ liệu cũ**, chỉ đọc, giữ nguyên làm dự phòng. Chạy một lần duy nhất, đánh dấu bằng `localStorage['app-migrated-v2']`.
+### Thể lực theo thời gian
+
+Dự đoán 10K được tính lại tại cuối mỗi tuần trong 26 tuần, mỗi lần chỉ dùng các buổi tính tới tuần đó. Hồi quy tuyến tính trên 8 tuần gần nhất cho ra tốc độ tiến bộ (giây mỗi tuần), dùng để ước ngày đạt mục tiêu A và dự đoán tại ngày thi.
+
+### Tải tập luyện
+
+Mỗi buổi chạy quy ra **km quy đổi** = km × hệ số cường độ: nhẹ 1,0 · dài 1,2 · chất lượng 1,5 · thi đấu 1,6.
+
+- Buổi gắn với giáo án lấy theo loại buổi đó. Buổi chạy tự do: nhanh hơn pace trung vị 120 ngày của chính bạn từ 6% là chất lượng; dài từ 1,5 lần quãng trung vị (tối thiểu 12 km) là chạy dài.
+- **Tỷ lệ** = tải 7 ngày gần nhất ÷ trung bình tuần của 4 tuần trước đó. Cần trung bình từ 8 km quy đổi mỗi tuần mới tính.
+
+| Tỷ lệ | Vùng |
+| --- | --- |
+| dưới 0,8 | Đang giảm tải |
+| 0,8 – 1,3 | Vùng an toàn |
+| 1,3 – 1,5 | Tăng nhanh |
+| trên 1,5 | Tăng quá nhanh |
+
+Đây là chỉ báo xu hướng để tránh tăng tải đột ngột, không phải chẩn đoán chấn thương.
+
+### Hiệu chỉnh nhiệt
+
+Theo quy tắc **nhiệt độ + điểm sương** (°F) quen thuộc với dân chạy. Dùng điểm sương thay vì độ ẩm vì nó phản ánh mồ hôi còn bay hơi được hay không.
+
+| Nhiệt độ + điểm sương | Chậm đi | Nhãn |
+| --- | --- | --- |
+| ≤ 100°F | 0% | Mát |
+| 110 / 120°F | 0,5% / 1% | Mát |
+| 130 / 140 / 150°F | 2% / 3% / 4,5% | Ấm |
+| 160 / 170°F | 6% / 8% | Nóng ẩm |
+| 180°F trở lên | 10%, cộng 0,2% mỗi °F, tối đa 15% | Rất nóng ẩm |
+
+Nội suy tuyến tính giữa các mốc. Ví dụ sáng hè 29°C, điểm sương 25°C cho khoảng 6%: pace 6:30 tương đương khoảng 6:07 khi trời mát.
+
+### Tự điều chỉnh giáo án
+
+Chỉ đụng tới buổi **chưa chạy**; không đụng buổi thi đấu, tuần thi đấu cuối và buổi bạn tự sửa. Mọi thay đổi đều có nút **Hoàn tác**.
+
+- **Khối lượng, 7 ngày tới**: nghỉ từ 10 ngày → về khoảng 55% kế hoạch; tuần qua dưới 60% kế hoạch → khoảng 110% số đã chạy (không dưới 75% kế hoạch); tuần qua nhiều hơn 30% / 50% so với trung bình 4 tuần trước → giảm 8% / 15%. Giảm còn 80% trở xuống thì đổi buổi chất lượng thành chạy nhẹ. Hết điều kiện thì gợi ý khôi phục buổi gốc.
+- **Pace, 21 ngày tới**: so pace ghi trong buổi với vùng pace dự đoán; chỉ sửa khi lệch quá 5% (chạy nhẹ) hoặc 3–4% (chất lượng), mỗi lần tối đa 15%, và chỉ khi độ tin cậy dự đoán không phải "thấp".
+
+### Sinh giáo án riêng theo mục tiêu
+
+- **Pace**: mục tiêu quy về pace 10K tương đương (Riegel), rồi lấy cùng tỷ lệ với vùng pace ở trên. Pace chạy nhẹ theo thể lực hiện tại nếu bạn đang chậm hơn mục tiêu, vì chạy nhẹ theo mục tiêu xa sẽ quá nhanh.
+- **Khối lượng**: khởi điểm bằng trung bình 4 tuần gần nhất trong nhật ký (tối thiểu 10 / 15 / 25 / 40 km cho 5K / 10K / Half / Full), tăng tối đa khoảng 10% mỗi tuần tới đỉnh 28 / 40 / 55 / 75 km (không quá 2 lần khởi điểm).
+- **Nhịp**: cứ tuần thứ 4 giảm còn 80%; 2–3 tuần cuối giảm dần còn 72%, 55%, 40% đỉnh; buổi dài tối đa 10 / 15 / 21 / 32 km.
+- **Buổi chất lượng** thay đổi theo giai đoạn: fartlek và đạp dốc ở nền tảng, interval và tempo khi xây sức bền, buổi ở đúng pace thi ở giai đoạn đặc thù, và một buổi **chạy thử hết sức** để đối chiếu mục tiêu.
+- Cần còn ít nhất 6 tuần tới ngày thi. Giáo án sinh ra có cùng cấu trúc với giáo án dựng sẵn, nên sửa, xoá buổi và tự điều chỉnh đều chạy như thường.
+
+### Chuỗi, PR và giày
+
+- **Chuỗi tuần đạt**: số tuần liên tiếp đạt mục tiêu số buổi/tuần, hoặc km/tuần, hoặc mặc định 3 buổi/tuần. Ngày nghỉ đúng giáo án không làm đứt chuỗi. Tuần này chưa đạt thì chưa tính là đứt.
+- **Chuỗi ngày**: số ngày liên tục có chạy, tính tới hôm nay (hoặc hôm qua nếu hôm nay chưa chạy). Đi bộ không tính.
+- **PR**: buổi chạy có thời gian và km lệch tối đa ±5% so với 5 / 10 / 21,1 / 42,2 km.
+- **Giày**: km = km đã chạy trước khi dùng app + các buổi gắn với đôi đó. Mặc định nên thay ở 700 km, nhắc từ 80%.
+
+PR, chuỗi, km giày, dự đoán và tải đều được **tính lại từ nhật ký mỗi lần**, nên sửa hay xoá một buổi là mọi con số tự đúng.
 
 ---
 
-## Cấu trúc file
+## Quyền riêng tư và dữ liệu
+
+| Dữ liệu | Nằm ở đâu | Có rời khỏi máy không |
+| --- | --- | --- |
+| Giải, giáo án, mục tiêu, giày, cài đặt | `localStorage` của trình duyệt | Không |
+| Nhật ký chạy và ảnh | IndexedDB `bn-runs` | Không. **Ảnh không bao giờ rời máy**, trừ lúc bạn chủ động đọc ảnh bằng Gemini |
+| Ảnh gửi đi để AI đọc | Google Gemini | Có, khi bạn chọn ảnh và đã có API key. Gửi thẳng từ trình duyệt tới Google, không qua máy chủ của app |
+| Số liệu cho báo cáo và hỏi AI | Google Gemini | Có, khi bạn bấm phân tích hoặc hỏi. Chỉ số liệu đã tổng hợp, không có ảnh |
+| Thời tiết | Open-Meteo | Toạ độ đã làm tròn khoảng 10 km và ngày chạy |
+| Nhắc chạy bằng thông báo đẩy | Upstash Redis của app | Danh sách ngày tập kèm tên buổi, loại buổi, pace, cờ đã chạy, múi giờ, địa chỉ nhận thông báo. Thêm toạ độ đã làm tròn nếu bật thời tiết trong thông báo. Tắt nhắc nhở là bản ghi bị xoá |
+
+- Gemini API key chỉ nằm trong trình duyệt và **không** có trong file sao lưu. Nên giới hạn key theo tên miền của app trong Google AI Studio.
+- App xin quyền **lưu bền** để trình duyệt không tự dọn dữ liệu khi máy đầy, nhưng không phải trình duyệt nào cũng cho. Hãy thỉnh thoảng xuất file sao lưu.
+- Đổi máy: xuất file ở máy cũ, khôi phục ở máy mới.
+
+---
+
+## Ứng dụng cài được và dùng offline
+
+- **Chạy offline**: service worker giữ sẵn toàn bộ vỏ app. Mở app là hiện ngay từ bộ nhớ đệm, bản mới được tải ngầm cho lần sau; khi có bản mới, app báo "Đã có bản mới" rồi tự tải lại.
+- **Màn hình chờ** chỉ hiện khi mở app từ đầu, tắt ngay khi dữ liệu đã sẵn sàng (tối thiểu 1 giây, tối đa 2,5 giây).
+- **Lối tắt**: nhấn giữ icon trên Android để mở thẳng **Nhập nhanh** hoặc **Lịch tập**.
+- **Nhận ảnh chia sẻ** từ app khác (Android).
+- **Thông báo hai tầng**: đẩy từ máy chủ lúc 6:30; nếu chưa cấu hình máy chủ thì nhắc cục bộ (Android dùng Periodic Background Sync, iOS chỉ nhắc khi app đang mở).
+- Giao diện **sáng / tối**, chỉ dùng chiều dọc, chặn bôi đen sao chép chữ ngoài ô nhập liệu, tôn trọng chế độ **giảm chuyển động** của hệ điều hành (tắt pháo hoa).
+
+---
+
+## Dành cho nhà phát triển
+
+### Kiến trúc
+
+- **Không framework, không bundler, không bước build.** HTML, CSS và JavaScript ES5 thuần. Phía trình duyệt không có dependency nào.
+- Mỗi file trong `js/` là một IIFE gán vào biến toàn cục và nhận phụ thuộc qua tham số:
+
+  ```js
+  window.Blocks = (function (Core, Templates) { 'use strict'; /* … */ })(window.Core, window.Templates);
+  ```
+
+- Mỗi trang HTML tự nạp các module nó cần bằng `<script src>` **theo thứ tự phụ thuộc**: `core.js`, `nav.js` trước, module dữ liệu ở giữa, bộ điều khiển trang ở cuối.
+- **Module thư viện** chỉ export một object. **Bộ điều khiển trang** (`dashboard.js` và các `*-page.js`) không export gì, tự chạy `boot()` và lo toàn bộ DOM của trang đó.
+- Thư mục `api/` là serverless function trên Vercel (Node), `package.json` chỉ phục vụ phần này.
+
+### Cấu trúc thư mục
 
 ```
-index.html        trang chủ: dashboard cá nhân
-race.html         trang 1 giải, đọc ?id=<raceId>
-style.css         toàn bộ giao diện, sáng/tối theo hệ điều hành
+index.html        Trang chủ                     → js/dashboard.js
+plan.html         Lịch tập                      → js/plan-page.js
+log.html          Nhập nhanh                    → js/log-page.js
+stats.html        Thống kê                      → js/stats-page.js
+settings.html     Cài đặt                       → js/settings-page.js
+race.html         Trang của một giải (?id=…)    → js/race-page.js
+style.css         Toàn bộ giao diện, biến màu sáng/tối trên :root
+sw.js             Service worker: cache offline, nhận push, nhắc chạy nền, nhận ảnh chia sẻ
+manifest.json     Khai báo PWA (lối tắt, share_target)
 quotes.js         200 câu truyền động lực
-rest-tips.json    gợi ý bài tập cho ngày không có buổi chạy
-sw.js             service worker: cache offline, nhận push, nhắc chạy nền
-manifest.json     khai báo PWA
-icons/            icon app (192, 512, apple-touch, favicon)
+rest-tips.json    Gợi ý bài tập cho ngày nghỉ
+icons/            Logo và icon app
+docs/screenshots/ Ảnh minh hoạ cho README
 
 js/
-  core.js           tiện ích dùng chung: ngày giờ, store an toàn, pháo hoa canvas, toast
-  templates.js      khuôn giáo án: 5 cấp độ, "periodized-12w" = chu kỳ 12 tuần 10K cổ điển, và bộ sinh giáo án riêng theo mục tiêu
-  blocks.js         1 lần áp khuôn vào 1 giải: sinh buổi tập, tick/ghi chú, lịch tuỳ chỉnh
-  races.js          CRUD giải đấu, liên kết block
-  race-form.js      tạo / sửa / xoá giải và gắn / đổi / bỏ giáo án, dùng chung cho trang chủ và trang giải; sinh giáo án riêng theo mục tiêu
-  runlog.js         nhật ký chạy (ảnh không bắt buộc) trong IndexedDB, tính PR và streak
-  vision.js         đọc ảnh Strava bằng Gemini (km, pace, thời gian, ngày) và viết báo cáo AI
-  predict.js        dự đoán thời gian 5/10/21/42K và vùng pace từ nhật ký
-  adapt.js          gợi ý và tự điều chỉnh khối lượng, pace của giáo án
-  shoes.js          quản lý giày chạy, tính km và mức mòn
-  log-page.js       trang Nhập nhanh (log.html)
-  plan-page.js      trang Lịch tập (plan.html), gồm sửa/xóa buổi
-  goals.js          mục tiêu cá nhân + tính tiến độ
-  migrate.js        chuyển dữ liệu bn27-* cũ sang mô hình mới, chạy một lần
-  notify.js         nhắc chạy cục bộ + Web Push, gộp từ mọi block active
-  dashboard.js      điều khiển index.html
-  race-page.js      điều khiển race.html
+  core.js         Tiện ích chung: ngày giờ, store an toàn, toast, pháo hoa, đăng ký service worker
+  nav.js          Thanh menu dưới đáy, dùng chung mọi trang
+  templates.js    Giáo án dựng sẵn (5 cấp độ + cổ điển) và bộ sinh giáo án theo mục tiêu
+  blocks.js       Áp giáo án vào một giải: sinh buổi tập, đánh dấu, ghi chú, sửa / xoá buổi
+  races.js        Dữ liệu giải đấu
+  race-form.js    Tạo / sửa / xoá giải, gắn / đổi / bỏ giáo án (dùng chung trang chủ và trang giải)
+  runlog.js       Nhật ký chạy trong IndexedDB, PR, chuỗi ngày, chuỗi tuần
+  goals.js        Mục tiêu và điều kiện chuỗi tuần
+  predict.js      Dự đoán thành tích và vùng pace
+  load.js         Tải tập luyện
+  adapt.js        Tự điều chỉnh giáo án
+  weather.js      Thời tiết Open-Meteo và hiệu chỉnh nhiệt
+  shoes.js        Giày chạy
+  charts.js       Biểu đồ HTML/SVG tự viết (cột, đường, lịch nhiệt, thanh ngang, tooltip)
+  vision.js       Gemini: đọc ảnh Strava, báo cáo AI, hỏi đáp
+  notify.js       Nhắc cục bộ và đăng ký Web Push
+  backup.js       Sao lưu / khôi phục file JSON
+  migrate.js      Chuyển dữ liệu từ bản rất cũ (khoá bn27-*), chạy một lần
 
-api/               serverless function trên Vercel
-  vapid.js           trả khoá công khai VAPID cho trình duyệt
-  subscribe.js       lưu hoặc xoá subscription kèm danh sách buổi tập hôm nay
-  cron.js            chạy hằng ngày, đẩy thông báo nhắc chạy
-  test-push.js       bắn thử một thông báo ngay lập tức
-  health.js          báo xem máy chủ đã cấu hình đủ chưa
-lib/store.js       kho subscription trên Upstash Redis
-lib/heat.js        thời tiết sáng nay + hiệu chỉnh nhiệt cho cron (bảng giống js/weather.js)
-vercel.json        header cache và lịch cron
-package.json       dependency cho phần api/ (web-push, @upstash/redis)
+api/              Serverless function trên Vercel
+  vapid.js        Trả khoá công khai VAPID
+  subscribe.js    Lưu / xoá đăng ký nhận thông báo kèm danh sách buổi tập
+  cron.js         Chạy mỗi sáng, đẩy thông báo (kèm thời tiết nếu được bật)
+  test-push.js    Bắn thử một thông báo ngay
+  health.js       Báo máy chủ đã cấu hình đủ chưa (chỉ tên biến, không lộ giá trị)
+lib/
+  store.js        Kho đăng ký trên Upstash Redis (REST)
+  heat.js         Thời tiết và hiệu chỉnh nhiệt cho cron — bảng phải giống js/weather.js
+vercel.json       Header cache và lịch cron
 ```
 
-Phía trình duyệt không dùng dependency nào, `package.json` chỉ phục vụ các serverless function. Các file `js/*.js` là script thuần nạp bằng `<script src>` theo thứ tự phụ thuộc (core → templates → blocks → races → runlog → goals → migrate/notify → dashboard/race-page), không có bundler.
+### Mô hình dữ liệu
 
----
+| Khái niệm | Là gì | Lưu ở đâu |
+| --- | --- | --- |
+| **Template** | Hình dạng một chu kỳ tập (số tuần, giai đoạn, khối lượng từng tuần), không gắn ngày | Dựng sẵn trong code; giáo án sinh ra ở `app-templates` |
+| **Block** | Một lần áp template vào một giải: ngày bắt đầu, buổi đã chạy, ghi chú, buổi đã sửa / xoá / tự điều chỉnh | `app-blocks` |
+| **Race** | Giải đấu: tên, ngày, cự ly, mục tiêu A/B/C, có thể gắn một block | `app-races` |
+| **Run** | Một buổi chạy, đi bộ hay môn khác, có thể kèm ảnh, giày, thời tiết, liên kết với một buổi tập | IndexedDB `bn-runs` |
+| **Goal** | Mục tiêu km/tuần, buổi/tuần, km/tháng hoặc thành tích | `app-goals` |
 
-## Chạy ở máy
+- Sửa buổi không bao giờ đụng vào template: thay đổi nằm ở `block.edits`, `block.removed`, `block.adj`. Luôn đọc buổi tập qua `Blocks.sessionsOf()`.
+- Mã buổi tập là `'w' + chỉ số tuần + khoá ngày`, dùng làm khoá cho đánh dấu, ghi chú, sửa và liên kết nhật ký.
+- PR, chuỗi, km giày, dự đoán, tải **không lưu**, luôn tính lại từ nhật ký.
+
+<details>
+<summary><b>Toàn bộ khoá lưu trữ</b></summary>
+
+| Khoá | Nội dung |
+| --- | --- |
+| `app-races`, `app-blocks`, `app-templates` | Giải, giáo án đã áp, giáo án sinh ra |
+| `app-goals`, `app-shoes`, `app-shoe-def` | Mục tiêu, giày, giày mặc định |
+| `app-wx` | Vị trí đã làm tròn, giờ chạy, cờ gửi thời tiết trong thông báo |
+| `app-theme`, `app-stats-vol`, `app-stats-pace`, `app-adapt-auto` | Tuỳ chọn giao diện |
+| `app-gemini-key`, `app-gemini-model` | Gemini (không sao lưu) |
+| `app-ai-report`, `app-ai-chat` | Báo cáo AI và lịch sử hỏi đáp |
+| `app-pending` | Hàng chờ việc cần mạng (đọc ảnh, thời tiết) |
+| `bn27-notify` | Cài đặt nhắc chạy |
+| `app-migrated-v2`, `bn27-*` còn lại | Dữ liệu và cờ của bản rất cũ — chỉ đọc, cố ý không xoá |
+| Cache `bn27-cache-vNN`, `bn27-state`, `bn27-fonts`, `bn27-share` | Vỏ app, trạng thái cho nhắc nền, font, ảnh chia sẻ đang chờ |
+| Redis `bn27:subs` | Đăng ký nhận thông báo (tối đa 50) |
+
+Các tên `bn27-*` là di sản từ bản đầu tiên. Giữ nguyên để người đang dùng không mất dữ liệu hay đăng ký thông báo; muốn đổi thì phải viết bước chuyển dữ liệu.
+
+</details>
+
+### Chạy ở máy
 
 ```bash
 npx serve
@@ -213,84 +387,106 @@ npx serve
 python -m http.server
 ```
 
-Mở `http://localhost:<port>/index.html` (trang chủ); trang của một giải là `race.html?id=<id giải>`, mở bằng cách bấm vào thẻ giải ở trang chủ.
+Mở `http://localhost:<port>/index.html`. Phần `api/` chỉ chạy trên Vercel; ở máy, app tự nhận ra không có máy chủ và dùng nhắc cục bộ, mọi tính năng khác hoạt động bình thường.
 
-Phần `api/` chỉ chạy trên Vercel. Ở máy, app tự nhận ra không có máy chủ và lùi về nhắc cục bộ, mọi tính năng khác hoạt động bình thường.
+### Thêm hoặc đổi tên một file JS
 
----
+1. Thêm `<script src>` vào mọi trang cần nó, đúng vị trí theo thứ tự phụ thuộc.
+2. Thêm vào mảng `CORE` trong `sw.js`.
+3. **Tăng số `CACHE` trong `sw.js`** (`bn27-cache-vNN`). Bước này cần cho mọi thay đổi đáng kể, không chỉ khi thêm file: service worker phục vụ bản trong bộ nhớ đệm trước, không tăng số thì người dùng cũ vẫn thấy bản cũ.
 
-## Deploy
+Thêm trường mới cho một buổi chạy thì phải sửa cả `hydrate` và `record` trong `runlog.js`, lẫn phần xuất và khôi phục trong `backup.js`.
 
-Project nối thẳng với Vercel qua Git integration: push lên `main` là Vercel tự build và deploy, không cần GitHub Actions.
+### Deploy và bật thông báo đẩy
 
-### Bật thông báo đẩy
+Repo nối thẳng với Vercel: **push lên `main` là tự deploy**.
 
-Phần nhắc chạy có hai tầng. Tầng cục bộ chạy sẵn không cần cấu hình. Tầng Web Push cần làm một lần:
+Tầng nhắc cục bộ chạy sẵn. Tầng thông báo đẩy cần làm một lần:
 
-**1. Tạo kho Redis.** Vercel → project → tab **Storage** → **Create Database** → **Upstash** → **Redis** → gói Free, region Singapore → Connect vào project, tick cả ba môi trường. Để trống ô prefix nếu được hỏi.
+1. **Tạo kho Redis**: Vercel → project → **Storage** → **Create Database** → **Upstash Redis** (gói Free) → kết nối vào project cho cả 3 môi trường. Code tự nhận `KV_REST_API_*` hoặc `UPSTASH_REDIS_REST_*`, kể cả khi có tiền tố, và bỏ qua token chỉ-đọc.
+2. **Thêm biến môi trường** ở Project Settings → Environment Variables:
 
-Vercel sẽ tự thêm một cặp biến REST. Code nhận được cả `KV_REST_API_URL`/`KV_REST_API_TOKEN` lẫn `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`, và chịu được cả tiền tố kiểu `STORAGE_`. Token `READ_ONLY` bị bỏ qua vì không ghi được.
+   | Biến | Ý nghĩa |
+   | --- | --- |
+   | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Cặp khoá Web Push. Sinh bằng `npx web-push generate-vapid-keys` |
+   | `VAPID_SUBJECT` | Dạng `mailto:ban@email.com` |
+   | `CRON_SECRET` | Bảo vệ `/api/cron` khỏi bị gọi tuỳ tiện |
 
-**2. Thêm biến môi trường** vào Project Settings → Environment Variables:
+3. **Redeploy**: Vercel chỉ nạp biến môi trường khi tạo bản deploy mới.
+4. Trong app: **Cài đặt → Nhắc chạy → Kiểm tra máy chủ**, phải thấy "Máy chủ sẵn sàng", rồi **Bật nhắc nhở** → **Gửi thử**.
 
-| Biến | Lấy ở đâu |
-| --- | --- |
-| `VAPID_PUBLIC_KEY` | `.env.local` (đã gitignore) |
-| `VAPID_PRIVATE_KEY` | `.env.local` |
-| `VAPID_SUBJECT` | `.env.local`, dạng `mailto:ban@email.com` |
-| `CRON_SECRET` | `.env.local`, bảo vệ `/api/cron` khỏi bị gọi tuỳ tiện |
+**Giờ nhắc**: cron `30 23 * * *` giờ UTC = 6:30 sáng giờ Việt Nam. Gói Hobby của Vercel chỉ cho cron chạy **một lần mỗi ngày**, nên giờ chạy cron chính là giờ nhận thông báo; đổi giờ thì sửa `schedule` trong `vercel.json`. Máy chủ lưu múi giờ của từng máy nên tính đúng "hôm nay" theo nơi người dùng ở.
 
-Muốn sinh cặp khoá VAPID mới: `npx web-push generate-vapid-keys`.
-
-**3. Deploy lại.** Vercel chỉ nạp biến môi trường khi tạo deployment mới, thêm biến xong mà không deploy lại thì hàm vẫn chạy bản cũ. Deployments → bản trên cùng → ⋯ → **Redeploy**.
-
-**4. Bật trong app.** Trang chủ → **Kiểm tra máy chủ**, phải thấy "Máy chủ sẵn sàng". Rồi **Bật nhắc nhở** → **Gửi thử**.
-
-### Giờ nhắc
-
-Cron đặt `30 23 * * *` giờ UTC, tức 6:30 sáng giờ Việt Nam. Máy chủ lưu múi giờ của từng máy đăng ký nên tính ngày theo đúng nơi bạn đang ở.
-
-Gói Hobby của Vercel **chỉ cho cron chạy một lần mỗi ngày**, nên giờ chạy cron chính là giờ nhận thông báo đẩy. Ô "Giờ nhắc khi app mở" chỉ điều khiển lời nhắc cục bộ lúc app đang mở. Muốn đổi giờ push thì sửa `schedule` trong `vercel.json` (Việt Nam = UTC+7).
-
-### Bắn thử từ dòng lệnh
+**Bắn thử từ dòng lệnh:**
 
 ```bash
 # gửi tới mọi máy đã đăng ký
-curl -X POST https://<project>.vercel.app/api/test-push \
-  -H "Authorization: Bearer <CRON_SECRET>"
+curl -X POST https://<tên-miền>/api/test-push -H "Authorization: Bearer <CRON_SECRET>"
 
-# chạy đúng luồng cron, tức nội dung sẽ nhận lúc 6:30 sáng
-curl https://<project>.vercel.app/api/cron \
-  -H "Authorization: Bearer <CRON_SECRET>"
+# chạy đúng luồng cron buổi sáng
+curl https://<tên-miền>/api/cron -H "Authorization: Bearer <CRON_SECRET>"
 ```
 
-Kết quả dạng `{"ok":true,"total":1,"sent":1,...}`. Nếu `sent` bằng 0 thì xem `skipped` và `errors`.
+Kết quả dạng `{"ok":true,"total":1,"sent":1,"skipped":0,"dropped":0,"withWx":1}`. `withWx` là số thông báo có kèm thời tiết.
 
 ---
 
 ## Gặp trục trặc
 
-**Sửa gì trên Vercel cũng không thấy tác dụng.** Phải Redeploy. Biến môi trường chỉ được nạp lúc tạo deployment.
+<details>
+<summary><b>App vẫn hiện bản cũ sau khi deploy</b></summary>
 
-**App vẫn hiện bản cũ sau khi deploy.** Service worker cũ đang giữ cache. App tự nhận bản mới và tải lại, nhưng nếu đang kẹt ở một bản cũ thì cần làm tay một lần: máy tính bấm F12 → Application → Service Workers → Unregister rồi Ctrl+Shift+R; điện thoại xoá icon khỏi màn hình chính rồi thêm lại.
+Service worker cũ đang giữ bộ nhớ đệm. Bình thường app tự nhận bản mới và tải lại. Nếu bị kẹt: trên máy tính mở F12 → Application → Service Workers → Unregister rồi Ctrl+Shift+R; trên điện thoại xoá icon khỏi màn hình chính rồi cài lại.
+</details>
 
-**"Kiểm tra máy chủ" báo thiếu kho Upstash.** Chưa nối kho, hoặc nối rồi nhưng chưa Redeploy. Dòng báo lỗi có liệt kê tên các biến đang có trên server để đối chiếu.
+<details>
+<summary><b>Sửa biến môi trường trên Vercel mà không thấy tác dụng</b></summary>
 
-**Gửi thử báo lỗi 403.** Khoá VAPID đã đổi sau khi máy này đăng ký. Tắt rồi bật lại nhắc nhở để đăng ký lại.
+Phải Redeploy. Biến môi trường chỉ được nạp lúc tạo bản deploy.
+</details>
 
-**iPhone không nhận thông báo.** Safari chỉ cho phép thông báo khi trang đã được thêm vào màn hình chính và mở từ icon đó (iOS 16.4 trở lên).
+<details>
+<summary><b>"Kiểm tra máy chủ" báo thiếu kho Upstash</b></summary>
 
-**Ảnh biến mất.** Trình duyệt dọn IndexedDB khi máy thiếu chỗ. App có xin quyền lưu bền nhưng không phải trình duyệt nào cũng cho; xem dòng dung lượng trong tab ảnh để biết tình trạng.
+Chưa kết nối kho, hoặc kết nối rồi nhưng chưa Redeploy. Dòng báo lỗi liệt kê tên các biến đang có trên máy chủ để đối chiếu.
+</details>
 
-**Dữ liệu từ bản rất cũ của app (khoá `bn27-*`) không hiện.** Mở `index.html` ít nhất một lần để `migrate.js` chạy — nó đọc dữ liệu `bn27-*` cũ trong cùng trình duyệt đó và dựng lại. Nếu trước giờ chỉ mở thẳng `race.html`, hãy mở `index.html` trước.
+<details>
+<summary><b>Gửi thử báo lỗi 403</b></summary>
+
+Khoá VAPID đã đổi sau khi máy này đăng ký. Tắt rồi bật lại nhắc nhở để đăng ký lại.
+</details>
+
+<details>
+<summary><b>iPhone không nhận thông báo</b></summary>
+
+Safari chỉ cho thông báo khi app đã được thêm ra màn hình chính và mở từ icon đó, iOS 16.4 trở lên.
+</details>
+
+<details>
+<summary><b>Không đọc được ảnh Strava</b></summary>
+
+Kiểm tra API key ở Cài đặt → Thử kết nối. Lỗi "không tìm thấy model" thì đổi tên model. Lỗi hết hạn mức thì đợi ít phút. Nếu mất mạng, cứ lưu buổi chạy: app tự đọc lại ảnh khi có mạng.
+</details>
+
+<details>
+<summary><b>Ảnh hoặc dữ liệu biến mất</b></summary>
+
+Trình duyệt có thể dọn IndexedDB khi máy thiếu chỗ. Xem mục Dung lượng ở Cài đặt để biết dữ liệu đã được lưu bền chưa, và khôi phục từ file sao lưu gần nhất.
+</details>
+
+<details>
+<summary><b>Dữ liệu từ bản rất cũ của app (khoá bn27-*) không hiện</b></summary>
+
+Mở trang chủ ít nhất một lần để `migrate.js` chạy. Nó đọc dữ liệu cũ trong cùng trình duyệt và dựng lại thành giải, giáo án và nhật ký theo cấu trúc mới.
+</details>
 
 ---
 
 ## Ghi chú kỹ thuật
 
-- **Service worker** lấy HTML/CSS/JS từ mạng trước rồi mới dùng cache, để bản vừa deploy có hiệu lực ngay. Icon thì cache dài hạn. Mọi đường dẫn `/api/` đi thẳng ra mạng, không bao giờ qua cache — cache nhầm từng khiến `/api/health` báo lỗi cũ sau khi máy chủ đã sửa xong.
-- **Nhắc cục bộ** khi chưa có máy chủ: Android đã cài ra màn hình chính dùng Periodic Background Sync (tối thiểu 12 tiếng một lần, hệ điều hành quyết định lúc đánh thức nên giờ có thể lệch); iOS không hỗ trợ nên chỉ nhắc khi app đang mở; app đang mở thì hẹn giờ chính xác bằng `setTimeout`.
-- **Nút "Đọc bằng Claude"** trong tab ảnh dùng `window.claude.use('sample')` để đọc số liệu từ ảnh chụp màn hình. API này chỉ tồn tại khi trang chạy trong Claude Artifacts; ở nơi khác nút tự ẩn và bạn nhập tay.
-- **`api/cron.js`** không chặn theo giờ người dùng chọn. Với cron một lần mỗi ngày, chặn như vậy sẽ làm thông báo không bao giờ được gửi nếu giờ chọn muộn hơn giờ cron.
-- **PR theo cự ly** tính từ mọi run có `kind === 'run'`, số km trong khoảng ±5% một cự ly chuẩn (5/10/21.1/42.2) và có ghi thời gian — không phân biệt run đó có thuộc giải/buổi tập nào hay không.
-- **Streak** đếm số ngày liên tục có ít nhất 1 run tính đến hôm nay; nếu hôm nay chưa chạy thì tính đến hôm qua (chưa coi là "đứt" cho tới khi bỏ lỡ một ngày trọn vẹn).
+- **Service worker**: vỏ app (HTML/CSS/JS/JSON) trả ngay từ bộ nhớ đệm rồi tải bản mới ngầm (stale-while-revalidate); icon và font cache dài hạn. Mọi đường dẫn `/api/` và mọi request tới tên miền khác (Gemini, Open-Meteo) đi thẳng ra mạng, không qua cache.
+- **Đọc ảnh nhanh**: gọi thẳng từ trình duyệt tới Gemini (model mặc định `gemini-3.5-flash-lite`), ảnh thu còn 960px để gửi song song với bản 1400px để lưu, ép trả JSON theo schema với `temperature: 0`, và `preconnect` tới Google khi mở trang.
+- **`api/cron.js` không chặn theo giờ người dùng chọn**: với cron một lần mỗi ngày, chặn như vậy sẽ làm thông báo không bao giờ được gửi nếu giờ chọn muộn hơn giờ cron. Cùng toạ độ và giờ chỉ hỏi Open-Meteo một lần; Open-Meteo lỗi thì thông báo vẫn gửi, chỉ thiếu dòng thời tiết.
+- **Nhận ảnh chia sẻ**: `POST ./share` được service worker cất vào cache `bn27-share` rồi chuyển hướng tới `log.html?share=1`; trang Nhập nhanh lấy ảnh ra và dọn cache.
+- **Thời tiết**: ngày gần đây (10 ngày) lấy từ API dự báo của Open-Meteo, ngày cũ hơn từ kho lưu trữ ERA5 (trễ khoảng 5 ngày); các buổi cũ được gom theo khoảng tối đa 120 ngày cho mỗi lần hỏi.
