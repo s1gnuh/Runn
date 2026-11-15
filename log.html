@@ -111,8 +111,43 @@
   </section>
 
   <section id="qe-recent-wrap" hidden>
-    <div class="sec-head"><h2 class="sec-title">Gần đây</h2><span class="hint" id="qe-recent-n"></span></div>
+    <div class="sec-head"><h2 class="sec-title">Nhật ký</h2><span class="hint" id="qe-recent-n"></span></div>
+
+    <div class="lf" id="lf">
+      <div class="lf-row">
+        <input type="search" id="lf-q" class="lf-q" placeholder="Tìm chú thích, giày, ngày (12/10)..." autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="Tìm trong nhật ký">
+        <button type="button" class="btn-sm" id="lf-toggle" aria-expanded="false" aria-controls="lf-more">Lọc</button>
+      </div>
+      <div class="qe-days lf-kinds" id="lf-kind" role="group" aria-label="Loại hoạt động">
+        <button type="button" data-k="" aria-pressed="true">Tất cả</button>
+        <button type="button" data-k="run" aria-pressed="false">Chạy</button>
+        <button type="button" data-k="walk" aria-pressed="false">Đi bộ</button>
+        <button type="button" data-k="other" aria-pressed="false">Khác</button>
+      </div>
+      <div class="lf-more" id="lf-more" hidden>
+        <label class="fld"><span>Từ ngày</span><input type="date" id="lf-from"></label>
+        <label class="fld"><span>Đến ngày</span><input type="date" id="lf-to"></label>
+        <label class="fld"><span>Km từ</span><input type="text" inputmode="decimal" id="lf-kmin" autocomplete="off" placeholder="0"></label>
+        <label class="fld"><span>Km đến</span><input type="text" inputmode="decimal" id="lf-kmax" autocomplete="off" placeholder="không giới hạn"></label>
+        <label class="fld" id="lf-shoe-wrap" hidden><span>Giày</span><select id="lf-shoe"></select></label>
+        <label class="fld"><span>Sắp xếp</span>
+          <select id="lf-sort">
+            <option value="new">Mới nhất</option>
+            <option value="old">Cũ nhất</option>
+            <option value="long">Dài nhất</option>
+            <option value="fast">Pace nhanh nhất</option>
+          </select>
+        </label>
+        <label class="qe-link lf-wide"><input type="checkbox" id="lf-photo"><span>Chỉ buổi có ảnh</span></label>
+      </div>
+      <div class="lf-sum" id="lf-sum" hidden>
+        <span id="lf-sum-t"></span>
+        <button type="button" class="lnk" id="lf-clear">Xóa lọc</button>
+      </div>
+    </div>
+
     <div class="rc-groups" id="qe-recent"></div>
+    <p class="ch-empty" id="lf-empty" hidden>Không có buổi nào khớp bộ lọc.</p>
     <button type="button" class="btn-sm qe-more" id="qe-more" hidden>Xem thêm</button>
   </section>
 </div>
@@ -128,6 +163,7 @@
 <script src="js/runlog.js"></script>
 <script src="js/shoes.js"></script>
 <script src="js/vision.js"></script>
+<script src="js/weather.js"></script>
 <script src="js/log-page.js"></script>
 </body>
 </html>

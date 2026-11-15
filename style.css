@@ -910,3 +910,27 @@ details.week[open] .wk-head::after { transform: rotate(225deg); margin-top: 4px;
 .qe-actions { display: flex; align-items: center; gap: 10px; }
 .qe-save { flex: 1 1 auto; padding: 13px 18px; font-size: 15px; text-align: center; }
 .btn[disabled] { opacity: .6; cursor: default; }
+
+/* ===== Tải tập luyện ===== */
+.chip.lz-low { background: var(--rest-bg); color: var(--rest); }
+.chip.lz-ok { background: var(--easy-bg); color: var(--easy); }
+.chip.lz-high { background: var(--quality-bg); color: var(--quality); }
+.chip.lz-over { background: var(--bad); color: #fff; }
+.ch-band { fill: var(--easy); fill-opacity: .1; }
+.lk-band { width: 14px; height: 10px; border-radius: 3px; background: var(--easy); opacity: .2; }
+#load-mix .hb-r { grid-template-columns: 86px minmax(0, 1fr) 40px; }
+#pace-seg { align-self: flex-start; }
+
+/* ===== Nhập nhanh: lọc & tìm trong nhật ký ===== */
+.lf { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.lf-row { display: flex; gap: 8px; }
+.lf-q { flex: 1 1 auto; min-width: 0; font: inherit; font-size: 14px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; -webkit-appearance: none; appearance: none; }
+.lf-q::placeholder { color: var(--muted); opacity: .7; }
+.lf-kinds { margin-top: 0; }
+.lf-more { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.lf-more .lf-wide { grid-column: 1 / -1; }
+.lf-sum { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--muted); }
+.rc-wx { font-size: 12.5px; color: var(--muted); }
+
+/* ===== Cài đặt: thời tiết ===== */
+.wx-results { display: flex; flex-wrap: wrap; gap: 6px; }

@@ -1,9 +1,10 @@
 // Điều khiển stats.html — tổng quan tuần, số liệu so với kỳ trước, lịch hoạt
-// động, khối lượng, xu hướng pace, phân bố cự ly, PR, dự đoán, mục tiêu, giày
-// và báo cáo AI. Biểu đồ dựng bằng js/charts.js.
+// động, khối lượng, tải tập luyện, xu hướng pace, phân bố cự ly, PR, dự đoán,
+// mục tiêu, giày và báo cáo AI. Biểu đồ dựng bằng js/charts.js.
 (function () {
   'use strict';
   var C = window.Core, B = window.Blocks, RL = window.RunLog, G = window.Goals, S = window.Shoes, CH = window.Charts;
+  var W = window.Weather;
   var el = function (id) { return document.getElementById(id); };
   var on = function (id, ev, fn) { var n = el(id); if (n) n.addEventListener(ev, fn); };
   var runs = [];
@@ -109,7 +110,7 @@
     var pmE = new Date(pmS.getFullYear(), pmS.getMonth(), Math.min(t0.getDate(), pmLast));
     var mKm = RL.kmBetween(runs, mS, t0), pmKm = RL.kmBetween(runs, pmS, pmE);
     var mN = countIn(mS, t0), pmN = countIn(pmS, pmE);
-    var days = dayKm(), streak = RL.computeStreak(runs), best = longestStreak(Object.keys(days));
+    var ws = G.weekStreak(runs);
     var a30 = paceAvg(0, 30), p30 = paceAvg(30, 60);
     var real = runs.filter(isRun);
     var totalKm = real.reduce(function (a, r) { return a + Number(r.km); }, 0);
@@ -128,7 +129,8 @@
     var tiles = [
       { l: 'Km tháng này', v: C.fmtKm(mKm), u: 'km', s: kmD },
       { l: 'Buổi chạy tháng này', v: mN, u: 'buổi', s: nD },
-      { l: 'Chuỗi ngày chạy', v: streak, u: 'ngày', s: '<span class="tile-s">Dài nhất ' + best + ' ngày</span>' },
+      { l: 'Chuỗi tuần đạt', v: ws.n, u: 'tuần',
+        s: '<span class="tile-s">' + C.esc(G.weekProgressText(ws) + ' · dài nhất ' + ws.best + ' tuần') + '</span>' },
       { l: 'Pace trung bình 30 ngày', v: a30 ? P.paceText(a30) : '—', u: a30 ? '/km' : '', s: pD },
       { l: 'Tổng quãng đường', v: C.fmtKm(totalKm), u: 'km', s: '<span class="tile-s">' + real.length + ' buổi' + (first ? ' từ ' + fullDate(C.fromIso(first)) : '') + '</span>' },
       { l: 'Tổng thời gian', v: C.esc(C.fmtDuration(totalSec)), u: '', s: '<span class="tile-s">' + (timed.length ? 'Trung bình ' + Math.round(totalSec / timed.length / 60) + ' phút mỗi buổi' : 'Chưa có buổi ghi thời gian') + '</span>' }
@@ -158,7 +160,8 @@
     var km = keys.reduce(function (a, k) { return a + days[k]; }, 0);
     el('hm-range').textContent = weeks + ' tuần gần nhất';
     el('hm-figs').innerHTML = fig(keys.length, 'ngày có chạy') + fig(C.fmtKm(km) + '<small>km</small>', 'tổng quãng đường')
-      + fig(longestStreak(keys) + '<small>ngày</small>', 'chuỗi dài nhất');
+      + fig(RL.computeStreak(runs) + '<small>ngày</small>', 'chuỗi ngày hiện tại')
+      + fig(longestStreak(keys) + '<small>ngày</small>', 'chuỗi ngày dài nhất');
     var grid = box.querySelector('.hm-grid');
     grid.setAttribute('role', 'img');
     grid.setAttribute('aria-label', keys.length + ' ngày có chạy trong ' + weeks + ' tuần gần nhất, tổng ' + C.fmtKm(km) + ' km');
@@ -241,8 +244,96 @@
     }).join('');
   }
 
+  /* ================= tải tập luyện ================= */
+  var loadWidth = 0, loadData = null;
+  var ZONE_NOTE = {
+    low: ['info', 'Tải 7 ngày thấp hơn 80% mức quen thuộc. Hợp lý nếu đang tuần giảm tải, vừa ốm hay đi xa; kéo dài nhiều tuần thì thể lực sẽ giảm dần.'],
+    ok: ['ok', 'Tải 7 ngày nằm trong vùng an toàn, 0,8–1,3 lần mức quen thuộc của 4 tuần trước.'],
+    high: ['warn', 'Tải 7 ngày cao hơn 30% so với mức quen thuộc. Giữ nguyên khối lượng tuần tới thay vì tăng tiếp, và ưu tiên ngủ đủ.'],
+    over: ['warn', 'Tải 7 ngày cao hơn 50% so với mức quen thuộc, kiểu tăng đột ngột hay đi kèm chấn thương. Cân nhắc đổi buổi chất lượng kế tiếp thành chạy nhẹ.']
+  };
+  function ratioText(v) { return C.fmtNum(v, 2); }
+
+  function renderLoad() {
+    var L = window.Load, box = el('load-chart'), t0 = C.today0();
+    var d = loadData = L.compute(runs, 84), now = d.now, z = d.zone;
+    loadWidth = box.clientWidth;
+
+    var chip = el('load-zone');
+    chip.hidden = !z;
+    if (z) { chip.textContent = z.label; chip.className = 'chip lz-' + z.key; }
+    el('load-figs').innerHTML = fig(C.fmtKm(now.acute) + '<small>km</small>', 'tải 7 ngày qua')
+      + fig(C.fmtKm(now.chronic) + '<small>km</small>', 'TB tuần, 4 tuần trước')
+      + fig(now.ratio != null ? ratioText(now.ratio) : '—', 'tỷ lệ');
+
+    var pts = d.series.map(function (p) {
+      return { t: p.date.getTime(), v: p.ratio, head: wdName(p.date) + ', ' + fullDate(p.date),
+               rows: (p.ratio != null ? ratioText(p.ratio) + '|tỷ lệ~' : '') + C.fmtKm(p.acute) + ' km|tải 7 ngày~'
+                 + C.fmtKm(p.chronic) + ' km|TB tuần, 4 tuần trước' };
+    });
+    if (pts.filter(function (p) { return p.v != null; }).length < 2) {
+      box.innerHTML = '<div class="ch-empty">Cần khoảng 5 tuần nhật ký, trung bình từ ' + L.MIN_CHRONIC + ' km mỗi tuần, để tính tỷ lệ tải.</div>';
+      el('load-legend').hidden = true;
+      el('load-table').innerHTML = '';
+    } else {
+      CH.bandLine(box, { pts: pts, band: L.BAND, from: pts[0].t, to: t0.getTime(), fmt: ratioText,
+                         aria: 'Tỷ lệ tải 12 tuần gần nhất' + (now.ratio != null ? ', hiện tại ' + ratioText(now.ratio) : '') });
+      el('load-legend').hidden = false;
+      var rows = [];
+      for (var i = d.series.length - 1; i >= 0; i -= 7) {
+        var p = d.series[i];
+        rows.push([fullDate(p.date), C.fmtKm(p.acute), C.fmtKm(p.chronic), p.ratio != null ? ratioText(p.ratio) : '—']);
+      }
+      el('load-table').innerHTML = CH.table(['Ngày', 'Tải 7 ngày', 'TB 4 tuần', 'Tỷ lệ'], rows);
+    }
+
+    var total = d.mixKm;
+    el('load-mix').innerHTML = total ? CH.hbars(L.ORDER.map(function (k) {
+      var m = d.mix[k], pct = Math.round(m.km / total * 100);
+      return { label: L.LABEL[k], value: m.km, text: pct + '%', head: L.LABEL[k] + ' · hệ số ' + C.fmtNum(L.FACTOR[k], 1),
+               rows: m.n + '|buổi~' + C.fmtKm(m.km) + ' km|quãng đường~' + pct + '%|tổng km 28 ngày' };
+    })) : '<p class="hint">Chưa có buổi chạy nào trong 28 ngày qua.</p>';
+    CH.bindTips(el('load-mix'));
+
+    var notes = [];
+    if (z) notes.push(ZONE_NOTE[z.key]);
+    if (total >= 20) {
+      var share = Math.round((d.mix.easy.km + d.mix.long.km) / total * 100);
+      notes.push(share >= 75
+        ? ['ok', share + '% km 28 ngày qua ở cường độ nhẹ hoặc chạy dài, đúng tinh thần khoảng 80% chạy nhẹ.']
+        : ['warn', 'Chỉ ' + share + '% km 28 ngày qua ở cường độ nhẹ hoặc chạy dài. Nguyên tắc là khoảng 80% chạy nhẹ để chân còn khỏe cho buổi chất lượng.']);
+    }
+    if (d.mixAuto) notes.push(['info', d.mixAuto + ' buổi chạy tự do trong 28 ngày được đoán cường độ theo pace và quãng đường. Buổi gắn với giáo án cho kết quả sát hơn.']);
+    if (!notes.length) notes.push(['info', 'Chưa đủ dữ liệu để nhận xét về tải.']);
+    el('load-notes').innerHTML = notes.map(function (n) { return '<li class="' + n[0] + '">' + C.esc(n[1]) + '</li>'; }).join('');
+  }
+
   /* ================= xu hướng pace ================= */
+  // Chế độ "quy đổi trời mát" chia thời gian mỗi buổi cho mức chậm đi do nóng
+  // ẩm (js/weather.js), để mùa hè không che mất tiến bộ thật. Buổi không có
+  // thời tiết giữ nguyên pace thực tế.
   var paceWidth = 0;
+  var paceMode = C.store.get('app-stats-pace') === 'adj' ? 'adj' : 'raw';
+  function syncPaceSeg() {
+    [].forEach.call(el('pace-seg').querySelectorAll('[data-pm]'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-pm') === paceMode ? 'true' : 'false');
+    });
+  }
+  function secOf(r, adj) { var s = RL.parseTime(r.time); return adj && r.wx ? W.adjust(s, r.wx) : s; }
+
+  // "Buổi nóng ẩm chậm hơn buổi mát X giây/km" — chỉ khi mỗi bên có từ 3 buổi.
+  function heatNote(list, P) {
+    var hot = { km: 0, sec: 0, n: 0 }, cool = { km: 0, sec: 0, n: 0 };
+    list.forEach(function (r) {
+      var h = r.wx && W.heat(r.wx), g = h && (h.sum >= 150 ? hot : h.sum < 130 ? cool : null);
+      if (g) { g.km += Number(r.km); g.sec += RL.parseTime(r.time); g.n++; }
+    });
+    if (hot.n < 3 || cool.n < 3) return '';
+    var diff = Math.round(hot.sec / hot.km - cool.sec / cool.km);
+    return ' Buổi nóng ẩm (' + hot.n + ' buổi) ' + (diff > 0 ? 'chậm hơn' : 'nhanh hơn') + ' buổi trời mát (' + cool.n + ' buổi) trung bình <b class="num">'
+      + Math.abs(diff) + ' giây/km</b>, pace trung bình ' + P.paceText(Math.round(hot.sec / hot.km)) + ' so với ' + P.paceText(Math.round(cool.sec / cool.km)) + '/km.';
+  }
+
   function renderPace() {
     var box = el('pace-chart'), P = window.Predict, t0 = C.today0(), from = C.addDays(t0, -119);
     paceWidth = box.clientWidth;
@@ -251,6 +342,9 @@
       var km = Number(r.km), sec = RL.parseTime(r.time), d = C.fromIso(r.date), p = sec / km;
       return km >= 1 && sec > 0 && d >= from && d <= t0 && p >= 150 && p <= 720;
     }).sort(function (a, b) { return a.date.localeCompare(b.date) || (a.added || 0) - (b.added || 0); });
+    var withWx = list.filter(function (r) { return !!r.wx; }).length;
+    el('pace-seg').hidden = list.length < 3 || withWx < 3;
+    var adj = paceMode === 'adj' && withWx >= 3;
 
     if (list.length < 3) {
       box.innerHTML = '<div class="ch-empty">Cần ít nhất 3 buổi chạy có ghi cả km lẫn thời gian trong 120 ngày qua để vẽ xu hướng.</div>';
@@ -260,22 +354,31 @@
     var fastest = null;
     var pts = list.map(function (r, i) {
       var km = 0, sec = 0;
-      list.slice(Math.max(0, i - 4), i + 1).forEach(function (x) { km += Number(x.km); sec += RL.parseTime(x.time); });
-      var d = C.fromIso(r.date), v = Math.round(RL.parseTime(r.time) / Number(r.km)), avg = Math.round(sec / km);
+      list.slice(Math.max(0, i - 4), i + 1).forEach(function (x) { km += Number(x.km); sec += secOf(x, adj); });
+      var d = C.fromIso(r.date), raw = RL.parseTime(r.time) / Number(r.km);
+      var v = Math.round(secOf(r, adj) / Number(r.km)), avg = Math.round(sec / km), h = r.wx && W.heat(r.wx);
       if (!fastest || v < fastest.v) fastest = { v: v, d: d };
-      return { t: d.getTime(), v: v, avg: avg, head: wdName(d) + ', ' + fullDate(d),
-               rows: P.paceText(v) + '/km|pace buổi này~' + C.fmtKm(r.km) + ' km|quãng đường~' + P.paceText(avg) + '/km|trung bình 5 buổi' };
+      var rows = P.paceText(Math.round(raw)) + '/km|pace thực tế';
+      if (h) rows += '~' + W.text(r.wx) + '|' + h.label.toLowerCase() + '~' + P.paceText(Math.round(W.adjust(raw, r.wx))) + '/km|quy đổi trời mát';
+      rows += '~' + C.fmtKm(r.km) + ' km|quãng đường~' + P.paceText(avg) + '/km|trung bình 5 buổi';
+      return { t: d.getTime(), v: v, avg: avg, head: wdName(d) + ', ' + fullDate(d), rows: rows };
     });
     var last = pts[pts.length - 1].avg, base = pts[Math.min(4, pts.length - 1)].avg, diff = last - base;
     CH.paceLine(box, { pts: pts, from: from.getTime(), to: t0.getTime(), fmt: P.paceText,
-                       aria: 'Biểu đồ pace ' + pts.length + ' buổi chạy trong 120 ngày, trung bình 5 buổi gần nhất ' + P.paceText(last) + ' mỗi km' });
+                       aria: 'Biểu đồ pace ' + (adj ? 'quy đổi trời mát ' : '') + pts.length + ' buổi chạy trong 120 ngày, trung bình 5 buổi gần nhất ' + P.paceText(last) + ' mỗi km' });
     el('pace-legend').hidden = false;
     var trend = Math.abs(diff) < 3 ? 'gần như không đổi so với đầu giai đoạn'
       : (diff < 0 ? 'nhanh hơn ' : 'chậm hơn ') + Math.abs(diff) + ' giây/km so với đầu giai đoạn';
-    el('pace-sum').innerHTML = 'Trung bình 5 buổi gần nhất <b class="num">' + P.paceText(last) + '/km</b>, ' + C.esc(trend)
-      + '. Nhanh nhất <b class="num">' + P.paceText(fastest.v) + '/km</b> ngày ' + C.fmt(fastest.d) + '. Trục dọc đảo ngược: càng cao càng nhanh.';
-    el('pace-table').innerHTML = CH.table(['Ngày', 'Km', 'Thời gian', 'Pace'], list.slice(-12).reverse().map(function (r) {
-      return [fullDate(C.fromIso(r.date)), C.fmtKm(r.km), r.time, P.paceText(Math.round(RL.parseTime(r.time) / Number(r.km))) + '/km'];
+    el('pace-sum').innerHTML = (adj ? 'Đang xem pace quy đổi trời mát (buổi không có thời tiết giữ pace thực tế). ' : '')
+      + 'Trung bình 5 buổi gần nhất <b class="num">' + P.paceText(last) + '/km</b>, ' + C.esc(trend)
+      + '. Nhanh nhất <b class="num">' + P.paceText(fastest.v) + '/km</b> ngày ' + C.fmt(fastest.d) + '. Trục dọc đảo ngược: càng cao càng nhanh.'
+      + heatNote(list, P);
+    var head = ['Ngày', 'Km', 'Thời gian', adj ? 'Pace quy đổi' : 'Pace'];
+    if (withWx) head.push('Nhiệt');
+    el('pace-table').innerHTML = CH.table(head, list.slice(-12).reverse().map(function (r) {
+      var row = [fullDate(C.fromIso(r.date)), C.fmtKm(r.km), r.time, P.paceText(Math.round(secOf(r, adj) / Number(r.km))) + '/km'];
+      if (withWx) row.push(r.wx ? C.fmtNum(r.wx.t, 0) + '°C' : '—');
+      return row;
     }));
   }
 
@@ -328,9 +431,11 @@
 
   /* ================= mục tiêu ================= */
   function renderGoals() {
-    var box = el('goal-list'), goals = G.all();
-    if (!goals.length) { box.innerHTML = '<p class="hint">Chưa có mục tiêu nào. Đặt mục tiêu km mỗi tuần để vòng "Tuần này" tính theo mục tiêu của bạn.</p>'; return; }
-    box.innerHTML = goals.map(function (g) {
+    var box = el('goal-list'), goals = G.all(), rule = G.weekRule();
+    var ruleNote = '<p class="hint">Chuỗi tuần đạt đang tính theo ' + C.esc(rule.label)
+      + (rule.isDefault ? ' (mặc định). Đặt mục tiêu số buổi hoặc km mỗi tuần để đổi điều kiện.' : ', lấy từ mục tiêu của bạn.') + '</p>';
+    if (!goals.length) { box.innerHTML = '<p class="hint">Chưa có mục tiêu nào. Đặt mục tiêu km mỗi tuần để vòng "Tuần này" tính theo mục tiêu của bạn.</p>' + ruleNote; return; }
+    box.innerHTML = ruleNote + goals.map(function (g) {
       var p = G.progress(g, runs), done = p.pct >= 100, title, sub;
       if (g.type === 'pr_target') {
         title = G.TYPE_LABEL[g.type] + ' ' + g.distanceKm + 'K';
@@ -421,7 +526,12 @@
     var P = window.Predict, R = window.Races, t0 = C.today0();
     var recent = runs.filter(function (r) { return r.kind === 'run' && r.date && Number(r.km) > 0; })
       .sort(function (a, b) { return b.date.localeCompare(a.date); }).slice(0, 15)
-      .map(function (r) { return { ngay: r.date, km: Number(r.km), pace: r.pace || null, thoi_gian: r.time || null }; });
+      .map(function (r) {
+        var o = { ngay: r.date, km: Number(r.km), pace: r.pace || null, thoi_gian: r.time || null };
+        var h = r.wx && W.heat(r.wx);
+        if (h) { o.nhiet_do_c = r.wx.t; o.diem_suong_c = r.wx.dp; o.cham_di_do_nong_phan_tram = h.pct; }
+        return o;
+      });
     var prs = RL.computePRs(runs), prOut = {};
     RL.PR_BUCKETS.forEach(function (b) { if (prs[b.key]) prOut[b.label] = RL.formatTime(prs[b.key].timeSeconds); });
     var preds = pred.list.filter(function (p) { return p.timeSec; }).map(function (p) {
@@ -446,6 +556,13 @@
       hom_nay: C.iso(t0),
       km_8_tuan_gan_day: RL.weeklyKmSeries(runs, 8).map(function (w) { return Math.round(w.km * 10) / 10; }),
       chuoi_ngay_chay: RL.computeStreak(runs),
+      chuoi_tuan_dat: (function () { var ws = G.weekStreak(runs); return { so_tuan: ws.n, dieu_kien: ws.rule.label, tuan_nay_da_dat: ws.curMet }; })(),
+      tai_tap_luyen: loadData && loadData.now.ratio != null ? {
+        tai_7_ngay_km_quy_doi: Math.round(loadData.now.acute * 10) / 10,
+        tb_tuan_4_tuan_truoc_km_quy_doi: Math.round(loadData.now.chronic * 10) / 10,
+        ty_le: Math.round(loadData.now.ratio * 100) / 100,
+        vung: loadData.zone.label, vung_an_toan: '0.8-1.3'
+      } : null,
       pace_tb_30_ngay: pred.avg30 ? P.paceText(pred.avg30.paceSec) + '/km' : null,
       buoi_chay_dai_nhat_60_ngay_km: pred.longest || null,
       thanh_tich_tot_nhat: prOut,
@@ -622,7 +739,7 @@
   }
 
   function renderAll() {
-    renderWeek(); renderTiles(); renderHeatmap(); renderVolume(); renderInsights(); renderPace(); renderDist();
+    renderWeek(); renderTiles(); renderHeatmap(); renderVolume(); renderInsights(); renderLoad(); renderPace(); renderDist();
     renderPR(); renderPredict(); renderGoals(); renderShoes(); renderReport();
   }
 
@@ -639,6 +756,13 @@
       C.store.set('app-stats-vol', volMode);
       syncVolSeg(); renderVolume();
     });
+    on('pace-seg', 'click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-pm]') : null;
+      if (!b || b.getAttribute('data-pm') === paceMode) return;
+      paceMode = b.getAttribute('data-pm');
+      C.store.set('app-stats-pace', paceMode);
+      syncPaceSeg(); renderPace();
+    });
     on('goal-add-toggle', 'click', function () { el('goal-form').hidden = !el('goal-form').hidden; });
     on('goal-type', 'change', function () {
       var isPr = el('goal-type').value === 'pr_target';
@@ -649,12 +773,12 @@
       e.preventDefault();
       G.create({ type: el('goal-type').value, target: el('goal-target').value, distanceKm: el('goal-dist').value });
       el('goal-form').reset(); el('goal-form').hidden = true;
-      renderGoals(); renderWeek();
+      renderGoals(); renderWeek(); renderTiles();   // mục tiêu tuần đổi điều kiện của chuỗi tuần
     });
     on('goal-list', 'click', function (e) {
       var id = e.target && e.target.getAttribute('data-goal-del');
       if (!id) return;
-      G.remove(id); renderGoals(); renderWeek();
+      G.remove(id); renderGoals(); renderWeek(); renderTiles();
     });
     // Biểu đồ pace và lịch nhiệt vẽ theo bề rộng thật; Safari di động bắn resize
     // cả khi cuộn (thanh địa chỉ co giãn) nên chỉ vẽ lại khi bề rộng đổi.
@@ -664,6 +788,7 @@
       rz = setTimeout(function () {
         if (!runs.length && !paceWidth) return;
         if (el('pace-chart').clientWidth !== paceWidth) renderPace();
+        if (el('load-chart').clientWidth !== loadWidth) renderLoad();
         if (heatWeeks() !== hmWeeks) renderHeatmap();
       }, 150);
     });
@@ -672,6 +797,7 @@
   function boot() {
     renderHeader();
     syncVolSeg();
+    syncPaceSeg();
     bindEvents();
     bindJump();
     window.Migrate.run().then(function () { return RL.loadRuns(); }).then(function (all) {

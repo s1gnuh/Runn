@@ -36,7 +36,8 @@ window.Vision = (function (Core) {
   };
 
   var REPORT_PROMPT = 'Bạn là huấn luyện viên chạy bộ, viết tiếng Việt, giọng thân thiện và ngắn gọn. '
-    + 'Chỉ dựa vào JSON số liệu bên dưới. Các số dự đoán (du_doan) và pace gợi ý (pace_goi_y) đã được app tính sẵn: '
+    + 'Chỉ dựa vào JSON số liệu bên dưới. Các số dự đoán (du_doan), pace gợi ý (pace_goi_y), tải tập luyện (tai_tap_luyen) '
+    + 'và mức chậm đi do nóng ẩm (cham_di_do_nong_phan_tram) đã được app tính sẵn: '
     + 'hãy dùng đúng các số đó, không tự bịa hay đổi số. Không đưa lời khuyên y tế; nếu có dấu hiệu chấn thương '
     + 'thì khuyên gặp bác sĩ. Dữ liệu ít hoặc độ tin cậy thấp thì nói rõ điều đó. '
     + 'Viết đúng 5 mục, mỗi mục có tiêu đề dạng "## Tên mục" rồi 2 đến 4 gạch đầu dòng bắt đầu bằng "- ": '

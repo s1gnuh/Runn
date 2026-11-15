@@ -31,6 +31,7 @@
     <a href="#s-overview">Tổng quan</a>
     <a href="#s-activity">Hoạt động</a>
     <a href="#s-volume">Khối lượng</a>
+    <a href="#s-load">Tải</a>
     <a href="#s-pace">Pace</a>
     <a href="#s-records">Thành tích</a>
     <a href="#s-goals">Mục tiêu</a>
@@ -73,8 +74,27 @@
     <ul class="insights" id="analysis-notes"></ul>
   </section>
 
+  <section class="panel jump-sec" id="s-load">
+    <div class="sec-head"><h2>Tải tập luyện</h2><span class="chip" id="load-zone" hidden></span></div>
+    <div class="figs" id="load-figs"></div>
+    <div id="load-chart" class="ch-box"></div>
+    <div class="ch-legend" id="load-legend" hidden>
+      <span><i class="lk-line"></i>Tải 7 ngày ÷ trung bình tuần của 4 tuần trước</span>
+      <span><i class="lk-band"></i>Vùng an toàn 0,8–1,3</span>
+    </div>
+    <div id="load-table"></div>
+    <h3 class="pred-sub">Cường độ 28 ngày qua</h3>
+    <div id="load-mix"></div>
+    <ul class="insights" id="load-notes"></ul>
+    <p class="hint">Mỗi buổi chạy quy ra km quy đổi = km × hệ số cường độ: nhẹ 1,0 · dài 1,2 · chất lượng 1,5 · thi đấu 1,6. Buổi gắn với giáo án lấy theo loại buổi; buổi chạy tự do được đoán theo pace (nhanh hơn pace thường ngày của bạn từ 6% là chất lượng) và quãng đường. Đi bộ không tính. Tỷ lệ là chỉ báo xu hướng để tránh tăng tải đột ngột, không phải chẩn đoán chấn thương.</p>
+  </section>
+
   <section class="panel jump-sec" id="s-pace">
     <div class="sec-head"><h2>Xu hướng pace</h2><span class="hint">120 ngày gần nhất</span></div>
+    <div class="seg seg-sm" id="pace-seg" role="group" aria-label="Pace hiển thị" hidden>
+      <button type="button" data-pm="raw" aria-pressed="true">Thực tế</button>
+      <button type="button" data-pm="adj" aria-pressed="false">Quy đổi trời mát</button>
+    </div>
     <p class="hint" id="pace-sum"></p>
     <div class="ch-legend" id="pace-legend" hidden>
       <span><i class="lk-dot"></i>Từng buổi chạy</span>
@@ -165,6 +185,8 @@
 <script src="js/goals.js"></script>
 <script src="js/shoes.js"></script>
 <script src="js/predict.js"></script>
+<script src="js/load.js"></script>
+<script src="js/weather.js"></script>
 <script src="js/vision.js"></script>
 <script src="js/migrate.js"></script>
 <script src="js/stats-page.js"></script>

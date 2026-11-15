@@ -11,7 +11,7 @@ window.Backup = (function (Core, RunLog) {
   // localStorage của cùng tên miền.
   var LOCAL_KEYS = [
     'app-races', 'app-blocks', 'app-templates', 'app-goals', 'app-shoes', 'app-shoe-def',
-    'bn27-notify', 'app-theme', 'app-migrated-v2',
+    'bn27-notify', 'app-theme', 'app-migrated-v2', 'app-wx',
     'bn27-done', 'bn27-notes', 'bn27-sched', 'bn27-mode'
   ];
 
@@ -46,7 +46,7 @@ window.Backup = (function (Core, RunLog) {
           var rec = {
             id: r.id, date: r.date, km: r.km, pace: r.pace, time: r.time, title: r.title,
             kind: r.kind, cat: r.cat, blockId: r.blockId, sessionId: r.sessionId,
-            raceId: r.raceId, note: r.note, added: r.added, shoeId: r.shoeId
+            raceId: r.raceId, note: r.note, added: r.added, shoeId: r.shoeId, wx: r.wx || null
           };
           if (r.url) { try { URL.revokeObjectURL(r.url); } catch (e) {} }
           if (onProgress) onProgress(++i, runs.length);
@@ -161,7 +161,7 @@ window.Backup = (function (Core, RunLog) {
             time: r.time || '', title: r.title || '', kind: r.kind || 'run',
             cat: r.cat === 'photo' ? 'photo' : 'strava',
             blockId: r.blockId || '', sessionId: r.sessionId || '', raceId: r.raceId || '',
-            note: r.note || '', added: r.added || Date.now(), shoeId: r.shoeId || ''
+            note: r.note || '', added: r.added || Date.now(), shoeId: r.shoeId || '', wx: r.wx || null
           });
         });
       });
