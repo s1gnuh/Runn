@@ -78,6 +78,90 @@
     }).catch(function (e) { vsStatus(e.message || 'Không kết nối được.', 'err'); });
   }
 
+  /* ---------- thời tiết lúc chạy ---------- */
+  var wxRuns = null, wxBusy = false, wxFound = [];   // nhật ký (để đếm buổi thiếu thời tiết), kết quả tìm
+  function wxStatus(msg, cls) {
+    var n = el('wx-status');
+    if (!n) return;
+    n.textContent = msg || '';
+    n.className = 'hint' + (cls ? ' ' + cls : '');
+  }
+  function renderWeather() {
+    var Wx = window.Weather, c = Wx.cfg(), sel = el('wx-hour');
+    if (!sel) return;
+    if (!sel.options.length) {
+      var opts = '';
+      for (var i = 4; i <= 21; i++) opts += '<option value="' + i + '">' + i + ' giờ</option>';
+      sel.innerHTML = opts;
+    }
+    sel.value = String(Wx.hour());
+    el('wx-off').hidden = !c;
+    if (!wxBusy) {
+      wxStatus(c ? 'Đang dùng: ' + c.place + ' (' + C.fmtNum(c.lat, 1) + '; ' + C.fmtNum(c.lon, 1) + '), lấy số liệu lúc ' + Wx.hour() + ' giờ (giờ địa phương).'
+                 : 'Đang tắt. Tìm thành phố hoặc dùng vị trí hiện tại để bật.');
+    }
+    renderWxFill();
+  }
+  function renderWxFill() {
+    var Wx = window.Weather, wrap = el('wx-fill-wrap');
+    if (!wrap) return;
+    if (!Wx.enabled() || !wxRuns) { wrap.hidden = true; return; }
+    var todo = wxRuns.filter(function (r) { return Wx.needs(r, true); });
+    var redo = todo.filter(function (r) { return !!r.wx; }).length;
+    wrap.hidden = !todo.length;
+    el('wx-fill').textContent = 'Lấy thời tiết cho ' + todo.length + ' buổi' + (redo ? ' (' + redo + ' buổi lấy lại theo giờ mới)' : ' chưa có');
+    el('wx-fill').disabled = wxBusy;
+  }
+  function choosePlace(p) {
+    window.Weather.setPlace(p);
+    el('wx-results').hidden = true;
+    el('wx-results').innerHTML = '';
+    renderWeather();
+    C.toast('Đã bật thời tiết', p.place);
+  }
+  function searchPlace() {
+    var q = el('wx-q').value.trim();
+    if (q.length < 2) { wxStatus('Nhập tên thành phố, ví dụ Bắc Ninh.', 'err'); return; }
+    wxStatus('Đang tìm...', 'busy');
+    window.Weather.search(q).then(function (list) {
+      var box = el('wx-results');
+      wxFound = list;
+      if (!list.length) { box.hidden = true; wxStatus('Không tìm thấy "' + q + '". Thử tên khác, có dấu hoặc không dấu.', 'err'); return; }
+      box.innerHTML = list.map(function (p, i) {
+        return '<button type="button" class="btn-sm" data-wx="' + i + '">' + C.esc(p.place) + '</button>';
+      }).join('');
+      box.hidden = false;
+      wxStatus('Chọn đúng nơi bạn hay chạy.');
+    }).catch(function (e) { wxStatus(e.message, 'err'); });
+  }
+  function usePosition() {
+    wxStatus('Đang lấy vị trí...', 'busy');
+    window.Weather.locate().then(choosePlace).catch(function (e) { wxStatus(e.message, 'err'); });
+  }
+  // Ghi lần lượt từng buổi: ghi song song nhiều giao dịch IndexedDB trên điện thoại dễ nghẽn.
+  function fillWeather() {
+    if (!wxRuns || wxBusy) return;
+    wxBusy = true;
+    renderWxFill();
+    wxStatus('Đang lấy thời tiết...', 'busy');
+    window.Weather.attach(wxRuns, true, function (i, n) {
+      wxStatus('Đang lấy thời tiết ' + i + '/' + n + '...', 'busy');
+    }).then(function (res) {
+      return res.done.reduce(function (p, r) {
+        return p.then(function () { return window.RunLog.saveRun(r); });
+      }, Promise.resolve()).then(function () { return res; });
+    }).then(function (res) {
+      wxBusy = false;
+      wxStatus('Đã gắn thời tiết cho ' + res.done.length + ' buổi.' + (res.failed ? ' ' + res.failed + ' lần hỏi bị lỗi: ' + res.error : ''),
+               res.failed ? 'err' : 'ok');
+      renderWxFill();
+    }).catch(function () {
+      wxBusy = false;
+      wxStatus('Không lấy được thời tiết. Thử lại sau.', 'err');
+      renderWxFill();
+    });
+  }
+
   /* ---------- dung lượng ---------- */
   // Ảnh chạy nằm trong IndexedDB nên cộng thẳng kích thước từng blob cho
   // chính xác; phần còn lại (vỏ app, font, bộ nhớ đệm) suy ra từ tổng mà
@@ -216,6 +300,23 @@
     on('vs-save', 'click', saveVision);
     on('vs-test', 'click', testVision);
     on('vs-clear', 'click', function () { el('vs-key').value = ''; saveVision(); });
+
+    renderWeather();
+    on('wx-search', 'click', searchPlace);
+    on('wx-q', 'keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); searchPlace(); } });
+    on('wx-gps', 'click', usePosition);
+    on('wx-off', 'click', function () { window.Weather.disable(); renderWeather(); C.toast('Đã tắt thời tiết', 'Số liệu đã gắn vẫn được giữ'); });
+    on('wx-hour', 'change', function (e) { window.Weather.setHour(e.target.value); renderWeather(); });
+    on('wx-fill', 'click', fillWeather);
+    on('wx-results', 'click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-wx]') : null, p = b && wxFound[Number(b.getAttribute('data-wx'))];
+      if (p) choosePlace(p);
+    });
+    window.RunLog.loadRuns().then(function (all) {
+      all.forEach(function (r) { if (r.url) { try { URL.revokeObjectURL(r.url); } catch (e) {} } });
+      wxRuns = all;
+      renderWxFill();
+    }).catch(function () {});
 
     var seg = el('th-seg');
     if (seg) seg.addEventListener('click', function (e) {

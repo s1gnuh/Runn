@@ -68,9 +68,11 @@
     var t0 = C.today0(), wk = RL.thisWeekRange(t0);
     var weekKm = RL.kmBetween(runs, wk.start, wk.end);
     var totalKm = runs.reduce(function (a, r) { return a + (r.kind !== 'walk' ? Number(r.km) || 0 : 0); }, 0);
-    var streak = RL.computeStreak(runs);
+    // Chuỗi tuần thay cho streak ngày ở trang chủ: ngày nghỉ đúng giáo án không
+    // làm đứt chuỗi tuần. Streak ngày vẫn còn ở trang Thống kê.
+    var ws = window.Goals.weekStreak(runs);
     var cards = [
-      { label: 'Streak', value: streak + ' ngày' },
+      { label: 'Chuỗi tuần', value: ws.n + ' tuần' },
       { label: 'Km tuần này', value: C.fmtKm(weekKm) },
       { label: 'Tổng km', value: C.fmtKm(totalKm) }
     ];

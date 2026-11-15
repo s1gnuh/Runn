@@ -4,7 +4,7 @@
 // số còn lại nên chỉ cần nhập hai.
 (function () {
   'use strict';
-  var C = window.Core, RL = window.RunLog, B = window.Blocks, V = window.Vision, S = window.Shoes;
+  var C = window.Core, RL = window.RunLog, B = window.Blocks, V = window.Vision, S = window.Shoes, W = window.Weather;
   var el = function (id) { return document.getElementById(id); };
   var on = function (id, ev, fn) { var n = el(id); if (n) n.addEventListener(ev, fn); };
   var NUM = ['km', 'pace', 'time'];
@@ -196,6 +196,27 @@
     return shoe.name + (hit.level === 'over' ? ' đã vượt ' : ' đã đạt 80% của ') + C.fmtKm(hit.retire) + ' km, nên cân nhắc thay giày';
   }
 
+  /* ================= thời tiết ================= */
+  // Lưu buổi trước, gắn thời tiết sau: mạng chậm hay lỗi không làm chậm hay
+  // hỏng việc lưu. Buổi nào lấy được thời tiết thì lưu lại lần nữa.
+  function addWeather(list) {
+    if (!W || !W.enabled() || !list.length) return;
+    W.attach(list).then(function (res) {
+      return res.done.reduce(function (p, r) { return p.then(function () { return RL.saveRun(r); }); }, Promise.resolve())
+        .then(function () { if (res.done.length) renderRecent(); });
+    }).catch(function () {});
+  }
+
+  function wxLine(l) {
+    if (!l.wx || !W) return '';
+    var h = W.heat(l.wx), bits = [W.text(l.wx)];
+    if (h) bits.push(h.label);
+    var km = Number(l.km), sec = RL.parseTime(l.time), pace = km > 0 && sec > 0 ? sec / km : RL.parseTime(l.pace);
+    var adj = (l.kind || 'run') === 'run' && h && h.pct >= 1 && pace > 0
+      ? ' · <span class="num">≈ ' + RL.formatTime(W.adjust(pace, l.wx)) + '/km</span> khi trời mát' : '';
+    return '<p class="rc-wx">' + C.esc(bits.join(' · ')) + adj + '</p>';
+  }
+
   /* ================= form ================= */
   function updateSave() {
     var b = el('qe-save');
@@ -270,7 +291,9 @@
     var blobP = photo ? photo.blobP : Promise.resolve(null);
     blobP.then(function (blob) {
       var r = editing || RL.newRun({ blob: blob });
+      var oldDate = r.date;
       r.date = val('date');
+      if (oldDate && oldDate !== r.date) r.wx = null;   // đổi ngày thì thời tiết cũ không còn đúng
       r.kind = el('qe-kind').value;
       r.km = km; r.pace = pace; r.time = time;
       r.note = val('note');
@@ -295,18 +318,117 @@
         resetForm(true);
         renderRecent();
         showStorage();
+        addWeather([r]);
       });
     }).then(function () { updateSave(); }, function () {
       C.toast('Không lưu được', 'Thử lại'); updateSave();
     });
   }
 
-  /* ================= danh sách gần đây ================= */
-  function sorted() {
-    return runs.slice().sort(function (a, b) {
-      return (b.date || '').localeCompare(a.date || '') || (b.added || 0) - (a.added || 0);
+  /* ================= lọc & tìm trong nhật ký ================= */
+  function blankFilter() { return { q: '', kind: '', from: '', to: '', kmin: '', kmax: '', shoe: '', photo: false, sort: 'new' }; }
+  var filt = blankFilter(), qTimer = 0;
+
+  // Số bộ lọc đang bật trong phần "Lọc" thu gọn (không tính ô tìm và loại).
+  function moreCount() {
+    return ['from', 'to', 'kmin', 'kmax', 'shoe'].filter(function (k) { return !!filt[k]; }).length
+      + (filt.photo ? 1 : 0) + (filt.sort !== 'new' ? 1 : 0);
+  }
+  function filtering() { return !!(filt.q.trim() || filt.kind) || moreCount() > 0; }
+
+  // Bỏ dấu tiếng Việt để "dau goi" tìm ra "đau gối".
+  function norm(s) {
+    s = String(s || '').toLowerCase();
+    try { s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) {}
+    return s.replace(/đ/g, 'd');
+  }
+  function numOrNull(v) {
+    var s = String(v || '').trim().replace(',', '.');
+    if (!s) return null;
+    var n = Number(s);
+    return isFinite(n) ? n : null;
+  }
+  function paceSec(r) {
+    var km = Number(r.km), sec = RL.parseTime(r.time);
+    return km > 0 && sec > 0 ? sec / km : RL.parseTime(r.pace);
+  }
+  function haystack(r) {
+    var d = r.date ? C.fromIso(r.date) : null, shoe = r.shoeId && S.get(r.shoeId), h = r.wx && W && W.heat(r.wx);
+    return norm([r.note, r.title, RL.KIND[r.kind] || '', shoe ? shoe.name : '', r.cat === 'photo' ? 'ảnh chạy' : '',
+      d ? d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear() : '', r.date || '',
+      r.km ? String(r.km).replace('.', ',') + ' km' : '', r.time || '', r.pace || '', h ? h.label : ''].join(' | '));
+  }
+
+  function filtered() {
+    var toks = norm(filt.q).split(/\s+/).filter(Boolean);
+    var kmin = numOrNull(filt.kmin), kmax = numOrNull(filt.kmax);
+    var list = runs.filter(function (r) {
+      var km = Number(r.km) || 0;
+      if (filt.kind && (r.kind || 'run') !== filt.kind) return false;
+      if (filt.from && (!r.date || r.date < filt.from)) return false;
+      if (filt.to && (!r.date || r.date > filt.to)) return false;
+      if (kmin != null && km < kmin) return false;
+      if (kmax != null && km > kmax) return false;
+      if (filt.shoe === '-' && r.shoeId) return false;
+      if (filt.shoe && filt.shoe !== '-' && r.shoeId !== filt.shoe) return false;
+      if (filt.photo && !r.url) return false;
+      if (toks.length) {
+        var h = haystack(r);
+        for (var i = 0; i < toks.length; i++) if (h.indexOf(toks[i]) < 0) return false;
+      }
+      return true;
+    });
+    function newest(a, b) { return (b.date || '').localeCompare(a.date || '') || (b.added || 0) - (a.added || 0); }
+    var cmp = filt.sort === 'old' ? function (a, b) { return -newest(a, b); }
+      : filt.sort === 'long' ? function (a, b) { return (Number(b.km) || 0) - (Number(a.km) || 0) || newest(a, b); }
+      : filt.sort === 'fast' ? function (a, b) {
+          var pa = paceSec(a), pb = paceSec(b);   // buổi không có pace xếp cuối
+          return (pa > 0 ? 0 : 1) - (pb > 0 ? 0 : 1) || (pa - pb) || newest(a, b);
+        }
+      : newest;
+    return list.sort(cmp);
+  }
+
+  function readFilter() {
+    filt.q = el('lf-q').value;
+    filt.from = el('lf-from').value; filt.to = el('lf-to').value;
+    filt.kmin = el('lf-kmin').value.trim(); filt.kmax = el('lf-kmax').value.trim();
+    filt.shoe = el('lf-shoe').value; filt.sort = el('lf-sort').value;
+    filt.photo = el('lf-photo').checked;
+  }
+  function syncKind() {
+    [].forEach.call(el('lf-kind').querySelectorAll('[data-k]'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-k') === filt.kind ? 'true' : 'false');
     });
   }
+  function applyFilter() { shown = PAGE; armed = ''; renderRecent(); }
+  function clearFilter() {
+    filt = blankFilter();
+    el('lf-q').value = ''; el('lf-from').value = ''; el('lf-to').value = '';
+    el('lf-kmin').value = ''; el('lf-kmax').value = ''; el('lf-shoe').value = '';
+    el('lf-sort').value = 'new'; el('lf-photo').checked = false;
+    syncKind();
+    applyFilter();
+  }
+  function renderShoeFilter() {
+    var list = S.list();
+    el('lf-shoe-wrap').hidden = !list.length;
+    el('lf-shoe').innerHTML = '<option value="">Tất cả</option><option value="-">Chưa gắn giày</option>'
+      + list.map(function (s) {
+        return '<option value="' + C.esc(s.id) + '">' + C.esc(s.name) + (s.retired ? ' (đã nghỉ)' : '') + '</option>';
+      }).join('');
+    el('lf-shoe').value = filt.shoe;
+  }
+  function renderFilterSum(list, active) {
+    var n = moreCount();
+    el('lf-toggle').textContent = n ? 'Lọc (' + n + ')' : 'Lọc';
+    el('lf-sum').hidden = !active;
+    if (!active) return;
+    var km = list.reduce(function (a, r) { return a + (Number(r.km) || 0); }, 0);
+    el('lf-sum-t').textContent = list.length + '/' + runs.length + ' buổi khớp' + (km ? ' · ' + C.fmtKm(km) + ' km' : '');
+  }
+
+  /* ================= danh sách ================= */
 
   var SHORT = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
   var KIND_CHIP = { run: 't-easy', walk: 't-long', other: 't-rest' };
@@ -325,6 +447,7 @@
       + '<span class="hint">' + (d ? C.fmt(d) + '/' + d.getFullYear() : 'Không rõ ngày') + (shoe ? ' · ' + C.esc(shoe.name) : '')
       + (l.cat === 'photo' ? ' · Ảnh chạy' : '') + '</span></div>'
       + '<div class="rc-stats">' + (stats.length ? stats.join('') : '<span>—</span>') + '</div>'
+      + wxLine(l)
       + (l.note ? '<p class="rc-note">' + C.esc(l.note) + '</p>' : '')
       + '<div class="rc-acts">'
       + '<button type="button" class="btn-sm btn-xs" data-act="edit">Sửa</button>'
@@ -335,27 +458,35 @@
       + '</article>';
   }
 
-  // Gom theo tuần (Thứ 2 – Chủ nhật), đầu mỗi nhóm có tổng km chạy và số buổi.
+  // Sắp theo ngày thì gom theo tuần (Thứ 2 – Chủ nhật), đầu mỗi nhóm có số
+  // buổi và tổng km chạy của tuần trong danh sách đang hiển thị (đã lọc), kể cả
+  // buổi chưa hiện vì phân trang. Sắp theo km/pace thì là một danh sách phẳng.
+  function weekKey(r) { return r.date ? C.iso(RL.thisWeekRange(C.fromIso(r.date)).start) : ''; }
   function renderRecent() {
-    var all = sorted(), groups = [], cur = null, t0 = C.today0(), thisWk = C.iso(RL.thisWeekRange(t0).start);
-    el('qe-recent-wrap').hidden = !all.length;
-    el('qe-recent-n').textContent = all.length ? all.length + ' buổi' : '';
+    var all = filtered(), active = filtering(), byWeek = filt.sort === 'new' || filt.sort === 'old';
+    var groups = [], cur = null, sums = {}, thisWk = C.iso(RL.thisWeekRange(C.today0()).start);
+    el('qe-recent-wrap').hidden = !runs.length;
+    el('qe-recent-n').textContent = runs.length ? runs.length + ' buổi' : '';
+    renderFilterSum(all, active);
+    el('lf-empty').hidden = !(active && !all.length);
+    if (byWeek) {
+      all.forEach(function (r) {
+        var k = weekKey(r), s = sums[k] || (sums[k] = { n: 0, km: 0 });
+        s.n++;
+        if (r.kind !== 'walk') s.km += Number(r.km) || 0;
+      });
+    }
     all.slice(0, shown).forEach(function (r) {
-      var key = r.date ? C.iso(RL.thisWeekRange(C.fromIso(r.date)).start) : '';
+      var key = byWeek ? weekKey(r) : 'flat';
       if (!cur || cur.key !== key) { cur = { key: key, list: [] }; groups.push(cur); }
       cur.list.push(r);
     });
     el('qe-recent').innerHTML = groups.map(function (g) {
-      var km = 0;
-      // tổng của cả tuần, kể cả buổi chưa hiện vì phân trang
-      all.forEach(function (r) {
-        if (r.kind !== 'walk' && r.date && C.iso(RL.thisWeekRange(C.fromIso(r.date)).start) === g.key) km += Number(r.km) || 0;
-      });
-      var n = all.filter(function (r) { return r.date && C.iso(RL.thisWeekRange(C.fromIso(r.date)).start) === g.key; }).length;
-      var s = g.key ? C.fromIso(g.key) : null;
+      if (!byWeek) return '<section class="rc-week">' + g.list.map(cardHtml).join('') + '</section>';
+      var s = g.key ? C.fromIso(g.key) : null, sm = sums[g.key];
       var title = !s ? 'Không rõ ngày' : g.key === thisWk ? 'Tuần này' : C.fmt(s) + ' – ' + C.fmt(C.addDays(s, 6));
       return '<section class="rc-week"><div class="rc-week-h"><strong>' + title + '</strong>'
-        + (s ? '<span class="num">' + n + ' buổi · ' + C.fmtKm(km) + ' km</span>' : '') + '</div>'
+        + (s ? '<span class="num">' + sm.n + ' buổi · ' + C.fmtKm(sm.km) + ' km</span>' : '') + '</div>'
         + g.list.map(cardHtml).join('') + '</section>';
     }).join('');
     el('qe-more').hidden = all.length <= shown;
@@ -560,7 +691,7 @@
     var btn = el('qb-save');
     var link = el('qb-link').checked;
     var todo = rows.filter(function (r) { return rowIn(r.id, 'use') && rowIn(r.id, 'use').checked; });
-    var saved = 0, linked = 0, failed = 0;
+    var saved = 0, linked = 0, failed = 0, savedRuns = [];
     btn.disabled = true;
     todo.reduce(function (p, row) {
       return p.then(function () {
@@ -578,7 +709,7 @@
           if (t) { r.sessionId = t.x.id; r.blockId = t.b.id; }
           return RL.saveRun(r).then(function (ok) {
             if (ok === null) { failed++; rowStatus(row, 'Không lưu được', 'err'); return; }
-            runs.unshift(r); saved++;
+            runs.unshift(r); saved++; savedRuns.push(r);
             if (t) { B.setDone(t.b, t.x.id, true); linked++; }
             removeRowSilently(row.id);
           });
@@ -592,6 +723,7 @@
         if (linked) C.FX.party(linked > 1 ? 'week' : 'easy', btn);
       }
       renderRecent(); showStorage();
+      addWeather(savedRuns);
       if (!rows.length) closeBulk(); else bulkRefresh();
     });
   }
@@ -664,11 +796,40 @@
     on('qe-cancel', 'click', function () { resetForm(true); renderRecent(); });
     on('qe-recent', 'click', onRecentClick);
     on('qe-more', 'click', function () { shown += PAGE; renderRecent(); });
+    // Enter chỉ lưu khi đang gõ trong form nhập — không phải ô tìm/lọc hay bảng hàng loạt.
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT' && e.target.type !== 'file') {
+      var t = e.target;
+      if (e.key === 'Enter' && t && t.tagName === 'INPUT' && t.type !== 'file' && t.closest && t.closest('#qe')) {
         e.preventDefault(); save();
       }
     });
+
+    on('lf-q', 'input', function () {
+      clearTimeout(qTimer);
+      qTimer = setTimeout(function () { readFilter(); applyFilter(); }, 150);
+    });
+    on('lf-q', 'keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
+    ['lf-from', 'lf-to', 'lf-shoe', 'lf-sort', 'lf-photo'].forEach(function (id) {
+      on(id, 'change', function () { readFilter(); applyFilter(); });
+    });
+    ['lf-kmin', 'lf-kmax'].forEach(function (id) {
+      on(id, 'input', function () {
+        clearTimeout(qTimer);
+        qTimer = setTimeout(function () { readFilter(); applyFilter(); }, 250);
+      });
+    });
+    on('lf-kind', 'click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-k]') : null;
+      if (!b) return;
+      filt.kind = b.getAttribute('data-k');
+      syncKind(); applyFilter();
+    });
+    on('lf-toggle', 'click', function () {
+      var box = el('lf-more'), open = box.hidden;
+      box.hidden = !open;
+      el('lf-toggle').setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    on('lf-clear', 'click', clearFilter);
   }
 
   function boot() {
@@ -685,6 +846,7 @@
 
     RL.openDB().then(function () { return RL.loadRuns(); }).then(function (all) {
       runs = all;
+      renderShoeFilter();
       renderRecent();
       showStorage();
       shoeHint();

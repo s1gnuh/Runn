@@ -52,6 +52,25 @@
     <p class="hint" id="vs-status"></p>
   </section>
 
+  <section class="panel" id="weather">
+    <h2>Thời tiết lúc chạy</h2>
+    <p class="hint">Tự gắn nhiệt độ và độ ẩm vào mỗi buổi chạy hoặc đi bộ, rồi tính pace tương đương khi trời mát — để mùa hè không che mất tiến bộ thật. Số liệu lấy từ Open-Meteo, miễn phí và không cần key. Chỉ toạ độ đã làm tròn khoảng 10 km và ngày chạy được gửi đi.</p>
+    <div class="qe-grid">
+      <label class="fld"><span>Thành phố</span><input type="text" id="wx-q" autocomplete="off" spellcheck="false" placeholder="Bắc Ninh" enterkeyhint="search"></label>
+      <label class="fld"><span>Giờ bạn hay chạy</span><select id="wx-hour"></select></label>
+    </div>
+    <div class="panel-actions">
+      <button type="button" class="btn-sm primary" id="wx-search">Tìm</button>
+      <button type="button" class="btn-sm" id="wx-gps">Dùng vị trí hiện tại</button>
+      <button type="button" class="btn-sm" id="wx-off" hidden>Tắt</button>
+    </div>
+    <div class="wx-results" id="wx-results" hidden></div>
+    <p class="hint" id="wx-status"></p>
+    <div class="panel-actions" id="wx-fill-wrap" hidden>
+      <button type="button" class="btn-sm" id="wx-fill"></button>
+    </div>
+  </section>
+
   <section class="panel" id="notify">
     <h2>Nhắc chạy trên điện thoại</h2>
     <p class="hint">Bật để nhận thông báo vào ngày có buổi chạy mà bạn chưa đánh dấu xong, gộp từ mọi giải đang có giáo án active. Cần thêm trang này vào màn hình chính trước, iPhone bắt buộc phải làm vậy mới cho gửi thông báo.</p>
@@ -98,6 +117,7 @@
 <script src="js/runlog.js"></script>
 <script src="js/notify.js"></script>
 <script src="js/vision.js"></script>
+<script src="js/weather.js"></script>
 <script src="js/backup.js"></script>
 <script src="js/settings-page.js"></script>
 </body>

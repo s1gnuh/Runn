@@ -190,25 +190,39 @@ window.Charts = (function (Core) {
     var last = pts[pts.length - 1], lx = X(last.t), ly = Y(last.avg);
     s += '<circle class="ch-end" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="5"/>';
     s += '<text class="ch-endl" x="' + (lx - 9).toFixed(1) + '" y="' + (ly < T + 16 ? ly + 18 : ly - 10).toFixed(1) + '" text-anchor="end">' + esc(o.fmt(last.avg)) + '</text>';
-    s += '<line class="ch-cross" x1="0" x2="0" y1="' + T + '" y2="' + (T + ph) + '" visibility="hidden"/>';
-    s += '<circle class="ch-hot" r="6" cx="0" cy="0" visibility="hidden"/>';
-    s += '<rect class="ch-hit" x="' + L + '" y="0" width="' + pw + '" height="' + (T + ph) + '"/>';
+    s += hoverLayer(L, T, pw, ph);
 
-    box.innerHTML = '<svg class="ch-svg" xmlns="' + NS + '" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '"'
-      + ' role="img" tabindex="0" aria-label="' + esc(o.aria) + '">' + s + '</svg>';
+    box.innerHTML = svgOpen(NS, W, H, o.aria) + s + '</svg>';
+    attachHover(box.firstChild, pts, function (p) { return X(p.t); },
+                function (p) { return Y(p.v); }, function (p) { return Math.min(Y(p.v), Y(p.avg)); });
+  }
 
-    var svg = box.firstChild, cross = svg.querySelector('.ch-cross'), hot = svg.querySelector('.ch-hot'), cur = -1;
+  /* ================= phần dùng chung của biểu đồ đường SVG ================= */
+  function svgOpen(NS, W, H, aria) {
+    return '<svg class="ch-svg" xmlns="' + NS + '" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '"'
+      + ' role="img" tabindex="0" aria-label="' + esc(aria) + '">';
+  }
+  // Vạch dọc, chấm nổi và vùng bắt chạm — vẽ sau cùng để nằm trên mọi thứ.
+  function hoverLayer(L, T, pw, ph) {
+    return '<line class="ch-cross" x1="0" x2="0" y1="' + T + '" y2="' + (T + ph) + '" visibility="hidden"/>'
+      + '<circle class="ch-hot" r="6" cx="0" cy="0" visibility="hidden"/>'
+      + '<rect class="ch-hit" x="' + L + '" y="0" width="' + pw + '" height="' + (T + ph) + '"/>';
+  }
+  // pts: các điểm trỏ tới được, sắp theo trục ngang; xOf/hotY/tipY(p) trả toạ độ
+  // trong SVG của điểm, của chấm nổi và của mép trên tooltip.
+  function attachHover(svg, pts, xOf, hotY, tipY) {
+    var cross = svg.querySelector('.ch-cross'), hot = svg.querySelector('.ch-hot'), cur = -1;
     function show(i) {
       cur = i;
-      var p = pts[i], x = X(p.t), y = Y(p.v), r = svg.getBoundingClientRect();
+      var p = pts[i], x = xOf(p), r = svg.getBoundingClientRect();
       cross.setAttribute('x1', x); cross.setAttribute('x2', x); cross.setAttribute('visibility', 'visible');
-      hot.setAttribute('cx', x); hot.setAttribute('cy', y); hot.setAttribute('visibility', 'visible');
-      showRows(p.head, p.rows, r.left + x, r.top + Math.min(y, Y(p.avg)));
+      hot.setAttribute('cx', x); hot.setAttribute('cy', hotY(p)); hot.setAttribute('visibility', 'visible');
+      showRows(p.head, p.rows, r.left + x, r.top + tipY(p));
     }
     function hide() { cur = -1; cross.setAttribute('visibility', 'hidden'); hot.setAttribute('visibility', 'hidden'); hideTip(); }
     svg.addEventListener('pointermove', function (e) {
       var x = e.clientX - svg.getBoundingClientRect().left, best = 0, bd = Infinity;
-      pts.forEach(function (p, i) { var dd = Math.abs(X(p.t) - x); if (dd < bd) { bd = dd; best = i; } });
+      pts.forEach(function (p, i) { var dd = Math.abs(xOf(p) - x); if (dd < bd) { bd = dd; best = i; } });
       if (best !== cur || (tip && tip.hidden)) show(best);
     });
     svg.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') hide(); });
@@ -221,8 +235,47 @@ window.Charts = (function (Core) {
     });
   }
 
+  /* ================= đường có dải tham chiếu (tỷ lệ tải) ================= */
+  // o.pts: [{t, v (null = chưa đủ dữ liệu, đường bị ngắt), head, rows}] sắp theo
+  // thời gian; o.band: [lo, hi] tô nền vùng an toàn; o.from, o.to (ms); o.fmt(v); o.aria.
+  function bandLine(box, o) {
+    var W = Math.max(260, Math.round(box.clientWidth)), H = 190, L = 40, R = 16, T = 16, B = 28;
+    var pw = W - L - R, ph = H - T - B, NS = 'http://www.w3.org/2000/svg';
+    var ok = o.pts.filter(function (p) { return p.v != null; });
+    var top = Math.max(o.band[1] + 0.3, Math.max.apply(null, ok.map(function (p) { return p.v; })) * 1.08);
+    top = Math.ceil(top / 0.5) * 0.5;
+    function X(t) { return L + (o.to > o.from ? (t - o.from) / (o.to - o.from) * pw : pw / 2); }
+    function Y(v) { return T + (1 - Math.min(v, top) / top) * ph; }
+
+    var s = '<rect class="ch-band" x="' + L + '" width="' + pw + '" y="' + Y(o.band[1]).toFixed(1) + '" height="' + (Y(o.band[0]) - Y(o.band[1])).toFixed(1) + '"/>';
+    for (var v = 0; v <= top + 1e-9; v += 0.5) {
+      var y = Y(v).toFixed(1);
+      s += '<line class="ch-gl" x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '"/>'
+        + '<text class="ch-tk" x="' + (L - 8) + '" y="' + (+y + 4) + '" text-anchor="end">' + esc(o.fmt(v)) + '</text>';
+    }
+    for (var k = 0; k <= 3; k++) {
+      var t = o.from + k * (o.to - o.from) / 3;
+      s += '<text class="ch-tk" x="' + X(t).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="' + (k === 0 ? 'start' : k === 3 ? 'end' : 'middle') + '">' + Core.fmt(new Date(t)) + '</text>';
+    }
+    var d = '', pen = false;
+    o.pts.forEach(function (p) {
+      if (p.v == null) { pen = false; return; }
+      d += (pen ? 'L' : 'M') + X(p.t).toFixed(1) + ',' + Y(p.v).toFixed(1);
+      pen = true;
+    });
+    s += '<path class="ch-line" d="' + d + '"/>';
+    var last = ok[ok.length - 1], lx = X(last.t), ly = Y(last.v);
+    s += '<circle class="ch-end" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="5"/>';
+    s += '<text class="ch-endl" x="' + (lx - 9).toFixed(1) + '" y="' + (ly < T + 16 ? ly + 18 : ly - 10).toFixed(1) + '" text-anchor="end">' + esc(o.fmt(last.v)) + '</text>';
+    s += hoverLayer(L, T, pw, ph);
+
+    box.innerHTML = svgOpen(NS, W, H, o.aria) + s + '</svg>';
+    attachHover(box.firstChild, ok, function (p) { return X(p.t); },
+                function (p) { return Y(p.v); }, function (p) { return Y(p.v); });
+  }
+
   return {
     bindTips: bindTips, hideTip: hideTip, tipAttrs: tipAttrs,
-    columns: columns, heatmap: heatmap, hbars: hbars, spark: spark, table: table, paceLine: paceLine
+    columns: columns, heatmap: heatmap, hbars: hbars, spark: spark, table: table, paceLine: paceLine, bandLine: bandLine
   };
 })(window.Core);

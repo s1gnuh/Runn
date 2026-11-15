@@ -43,13 +43,18 @@ window.RunLog = (function (Core) {
              date: r.date || '', km: r.km || '', pace: r.pace || '', time: r.time || '',
              title: r.title || '', kind: r.kind || 'run', cat: r.cat === 'photo' ? 'photo' : 'strava',
              blockId: r.blockId || '', sessionId: r.sessionId || '', raceId: r.raceId || '',
-             note: r.note || '', added: r.added || 0, shoeId: r.shoeId || '',
+             note: r.note || '', added: r.added || 0, shoeId: r.shoeId || '', wx: cleanWx(r.wx),
              msg: '', busy: false, zoom: false, armed: false, saved: 0, expanded: false };
+  }
+  // Thời tiết lúc chạy (js/weather.js): { t: °C, dp: điểm sương °C, rh: %, h: giờ lấy số liệu }.
+  function cleanWx(w) {
+    return w && typeof w.t === 'number' && typeof w.dp === 'number'
+      ? { t: w.t, dp: w.dp, rh: typeof w.rh === 'number' ? w.rh : null, h: typeof w.h === 'number' ? w.h : null } : null;
   }
   function record(l) {
     return { id: l.id, blob: l.blob, date: l.date, km: l.km, pace: l.pace, time: l.time, title: l.title,
              kind: l.kind, cat: l.cat, blockId: l.blockId, sessionId: l.sessionId, raceId: l.raceId,
-             note: l.note, added: l.added, shoeId: l.shoeId || '' };
+             note: l.note, added: l.added, shoeId: l.shoeId || '', wx: cleanWx(l.wx) };
   }
 
   function saveRun(l) { return idbRun('readwrite', function (st) { return st.put(record(l)); }); }
@@ -137,6 +142,37 @@ window.RunLog = (function (Core) {
     return n;
   }
 
+  /* ---------- chuỗi tuần đạt ---------- */
+  // Tổng km và số buổi (không tính đi bộ) của từng tuần, khoá theo ngày Thứ 2.
+  function weekTotals(runs) {
+    var m = {};
+    runs.forEach(function (r) {
+      if (r.kind === 'walk' || !r.date || !(Number(r.km) > 0)) return;
+      var k = Core.iso(thisWeekRange(Core.fromIso(r.date)).start);
+      var w = m[k] || (m[k] = { km: 0, n: 0 });
+      w.km += Number(r.km); w.n++;
+    });
+    return m;
+  }
+  // Số tuần (Thứ 2 – Chủ nhật) liên tiếp thoả `met({km, n})`, tính lùi từ tuần
+  // này. Tuần này chưa đạt thì chưa coi là đứt mà tính từ tuần trước, giống
+  // cách streak ngày đối xử với hôm nay. Ngày nghỉ không làm đứt chuỗi tuần,
+  // nên nó không thưởng cho việc chạy mỗi ngày như streak ngày.
+  function computeWeekStreak(runs, met) {
+    var m = weekTotals(runs), start = thisWeekRange(Core.today0()).start, none = { km: 0, n: 0 };
+    var cur = m[Core.iso(start)] || none, curMet = !!met(cur);
+    var wk = curMet ? start : Core.addDays(start, -7), n = 0;
+    while (met(m[Core.iso(wk)] || none)) { n++; wk = Core.addDays(wk, -7); }
+    var best = 0, run = 0, prev = null;
+    Object.keys(m).filter(function (k) { return met(m[k]); }).sort().forEach(function (k) {
+      var d = Core.fromIso(k);
+      run = prev && Math.round((d - prev) / 6048e5) === 1 ? run + 1 : 1;
+      if (run > best) best = run;
+      prev = d;
+    });
+    return { n: n, best: Math.max(best, n), cur: cur, curMet: curMet };
+  }
+
   /* ---------- tổng km theo khoảng ngày ---------- */
   function kmBetween(runs, from, to) {
     return runs.reduce(function (a, r) {
@@ -171,7 +207,7 @@ window.RunLog = (function (Core) {
     openDB: openDB, saveRun: saveRun, removeRun: removeRun, loadRuns: loadRuns,
     shrink: shrink, newRun: newRun, hydrate: hydrate, autoLink: autoLink,
     parseTime: parseTime, formatTime: formatTime,
-    computePRs: computePRs, computeStreak: computeStreak,
+    computePRs: computePRs, computeStreak: computeStreak, computeWeekStreak: computeWeekStreak,
     kmBetween: kmBetween, thisWeekRange: thisWeekRange, weeklyKmSeries: weeklyKmSeries,
     totalTimeSecs: totalTimeSecs
   };
