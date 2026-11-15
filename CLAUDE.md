@@ -37,6 +37,9 @@ Each HTML page lists only the modules it needs, in dependency order, via `<scrip
 Two kinds of module:
 
 - **Library modules** (`core`, `templates`, `blocks`, `races`, `race-form`, `runlog`, `goals`, `shoes`, `predict`, `adapt`, `load`, `weather`, `charts`, `vision`, `backup`, `notify`, `migrate`, `nav`) export an object and have no side effects beyond that.
+- `js/templates.js` also holds the goal-based plan **generator** (`Templates.generate`): it emits the same shape as the level templates (`days` with `role`, `weeks` with `e/l/q`), saved under `app-templates` with `gen: true`, so Blocks/Adapt/plan page need no special casing. `RaceForm.save` with `templateId === RaceForm.GEN` is the only entry point; it drops orphaned generated templates.
+- Push payload (`api/subscribe.js` → Redis → `api/cron.js`) may carry `wx: {lat, lon, hour}` (rounded, opt-in via `Weather.setPush`) and per-day `type`/`pace`; `lib/heat.js` duplicates the heat table of `js/weather.js` for Node — change both together.
+- `sw.js` handles `POST ./share` (Web Share Target) by stashing files in cache `bn27-share` and redirecting to `log.html?share=1`; `log-page.js` also drains an offline queue (`app-pending`) for Gemini reads / weather on `online`.
 - **Page controllers** (`dashboard.js` for index, and `*-page.js`) export nothing, end in a self-calling `boot()`, and own all DOM for their page. Each `boot()` calls `C.registerSW()` and `C.lockOrientation()`.
 
 Races are created on the home page but edited / deleted on their own `race.html`; both go through `js/race-form.js` (`RaceForm.save` / `remove`), which also owns attaching, swapping or dropping a race's block — don't reimplement that per page.

@@ -96,6 +96,8 @@
     }
     sel.value = String(Wx.hour());
     el('wx-off').hidden = !c;
+    el('wx-push-wrap').hidden = !c;
+    el('wx-push').checked = Wx.pushOn();
     if (!wxBusy) {
       wxStatus(c ? 'Đang dùng: ' + c.place + ' (' + C.fmtNum(c.lat, 1) + '; ' + C.fmtNum(c.lon, 1) + '), lấy số liệu lúc ' + Wx.hour() + ' giờ (giờ địa phương).'
                  : 'Đang tắt. Tìm thành phố hoặc dùng vị trí hiện tại để bật.');
@@ -305,9 +307,14 @@
     on('wx-search', 'click', searchPlace);
     on('wx-q', 'keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); searchPlace(); } });
     on('wx-gps', 'click', usePosition);
-    on('wx-off', 'click', function () { window.Weather.disable(); renderWeather(); C.toast('Đã tắt thời tiết', 'Số liệu đã gắn vẫn được giữ'); });
+    on('wx-off', 'click', function () { window.Weather.disable(); window.Notify.resync(); renderWeather(); C.toast('Đã tắt thời tiết', 'Số liệu đã gắn vẫn được giữ'); });
     on('wx-hour', 'change', function (e) { window.Weather.setHour(e.target.value); renderWeather(); });
     on('wx-fill', 'click', fillWeather);
+    on('wx-push', 'change', function (e) {
+      window.Weather.setPush(e.target.checked);
+      window.Notify.resync();
+      C.toast(e.target.checked ? 'Thông báo sáng sẽ kèm thời tiết' : 'Thông báo sáng không kèm thời tiết', e.target.checked ? 'Cần đang bật nhắc chạy bằng push' : '');
+    });
     on('wx-results', 'click', function (e) {
       var b = e.target.closest ? e.target.closest('[data-wx]') : null, p = b && wxFound[Number(b.getAttribute('data-wx'))];
       if (p) choosePlace(p);

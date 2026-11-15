@@ -4,6 +4,7 @@
 const webpush = require('web-push');
 const { getRedis, allSubs, dropSub } = require('../lib/store');
 const REST_TIPS = require('../rest-tips.json');
+const { todayAt, advice } = require('../lib/heat');
 
 function localNow(tz) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -27,7 +28,8 @@ module.exports = async (req, res) => {
   if (!redis) return res.status(503).json({ error: 'storage_not_configured' });
 
   const subs = await allSubs(redis);
-  let sent = 0, skipped = 0, dropped = 0;
+  let sent = 0, skipped = 0, dropped = 0, withWx = 0;
+  const wxCache = new Map();   // cùng toạ độ + giờ + ngày thì hỏi Open-Meteo một lần
 
   for (const { id, rec } of subs) {
     if (rec.on === false) { skipped++; continue; }
@@ -44,6 +46,12 @@ module.exports = async (req, res) => {
     if (undone) {
       title = 'Hôm nay có buổi chạy';
       body = undone.title;
+      if (rec.wx) {
+        const k = rec.wx.lat + ',' + rec.wx.lon + ',' + rec.wx.hour + ',' + now.date;
+        if (!wxCache.has(k)) wxCache.set(k, await todayAt(rec.wx.lat, rec.wx.lon, rec.wx.hour, now.date));
+        const line = advice(wxCache.get(k), undone);
+        if (line) { body += '\n' + rec.wx.hour + 'h: ' + line; withWx++; }
+      }
     } else if (todays.length) {
       skipped++; continue;              // buổi hôm nay đã xong, không làm phiền
     } else {
@@ -70,5 +78,5 @@ module.exports = async (req, res) => {
     }
   }
 
-  return res.status(200).json({ ok: true, total: subs.length, sent, skipped, dropped });
+  return res.status(200).json({ ok: true, total: subs.length, sent, skipped, dropped, withWx });
 };

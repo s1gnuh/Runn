@@ -8,7 +8,7 @@
   var el = function (id) { return document.getElementById(id); };
 
   var raceId = C.qs('id');
-  var race = null, block = null, tpl = null;
+  var race = null, block = null, tpl = null, runs = [];
 
   function sessions() { return block ? B.sessionsOf(block).list : []; }
   function findSession(sid) { return block ? B.findSession(block, sid) : null; }
@@ -181,12 +181,13 @@
   function openEdit() {
     var RF = window.RaceForm;
     delArmed = false; syncDel();
-    el('race-template').innerHTML = RF.optionsHtml();
+    el('race-template').innerHTML = RF.optionsHtml(block ? block.templateId : '');
     el('race-name').value = race.name;
     el('race-date').value = race.date;
     el('race-km').value = race.distanceKm || '';
+    el('race-goal').value = race.targetA || '';
     el('race-template').value = block ? block.templateId : '';
-    el('race-template-desc').textContent = RF.describe(el('race-template').value);
+    syncGen();
     el('race-form').hidden = false;
     el('r-manage-acts').hidden = true;
     el('race-name').focus();
@@ -195,11 +196,18 @@
     el('race-form').hidden = true;
     el('r-manage-acts').hidden = false;
   }
+  function syncGen() {
+    var RF = window.RaceForm, v = el('race-template').value;
+    el('race-template-desc').textContent = RF.describe(v);
+    el('race-gen').hidden = v !== RF.GEN;
+  }
   function saveEdit(e) {
     e.preventDefault();
     var res = window.RaceForm.save({ id: race.id, name: el('race-name').value, date: el('race-date').value,
-                                     km: el('race-km').value, templateId: el('race-template').value });
+                                     km: el('race-km').value, templateId: el('race-template').value,
+                                     goal: el('race-goal').value, days: el('race-days').value, runs: runs });
     if (!res) return;
+    if (res.error) { C.toast('Chưa lưu được', res.error); return; }
     race = res.race;
     block = race.blockId ? B.get(race.blockId) : null;
     tpl = block ? T.get(block.templateId) : null;
@@ -259,7 +267,7 @@
     on('r-edit', 'click', openEdit);
     on('race-cancel', 'click', closeEdit);
     on('race-form', 'submit', saveEdit);
-    on('race-template', 'change', function () { el('race-template-desc').textContent = window.RaceForm.describe(el('race-template').value); });
+    on('race-template', 'change', syncGen);
     on('r-del', 'click', deleteRace);
     on('m4', 'click', function () { block.mode = 4; B.save(block); renderAll(); });
     on('m3', 'click', function () { block.mode = 3; B.save(block); renderAll(); });
@@ -284,6 +292,8 @@
     setTab('overview', false);
     renderAll();
     renderReference();
+    // Nhật ký chỉ cần cho bộ sinh giáo án (khối lượng hiện tại); nạp nền, không chặn trang.
+    window.RunLog.loadRuns().then(function (all) { runs = all; }).catch(function () {});
     C.registerSW();
     C.lockOrientation();
   }

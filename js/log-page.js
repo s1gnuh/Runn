@@ -139,7 +139,8 @@
                 : 'Không đọc được số liệu nào trong ảnh. Nhập tay bên dưới.', got ? 'ok' : 'err');
     }).catch(function (e) {
       if (mine !== seq) return;
-      setAi(C.esc(e.message || 'Không đọc được ảnh.'), 'err');
+      photo.netFail = netErr(e);
+      setAi(C.esc(e.message || 'Không đọc được ảnh.') + (photo.netFail ? ' Lưu buổi này thì app sẽ tự đọc lại khi có mạng.' : ''), 'err');
     }).then(function () {
       if (mine !== seq) return;
       aiBusy = false;
@@ -198,12 +199,108 @@
     return shoe.name + (hit.level === 'over' ? ' đã vượt ' : ' đã đạt 80% của ') + C.fmtKm(hit.retire) + ' km, nên cân nhắc thay giày';
   }
 
+  /* ================= hàng chờ khi mất mạng ================= */
+  // Việc cần mạng sau khi lưu một buổi (đọc ảnh bằng Gemini, gắn thời tiết) mà
+  // lúc đó không làm được thì ghi vào hàng chờ: { id, ai, wx }. Có mạng lại, hoặc
+  // lần mở trang sau, app tự làm nốt. Chỉ xử lý ở trang này.
+  var Q_KEY = 'app-pending';
+  function pending() { var q = C.store.getJSON(Q_KEY, []); return Array.isArray(q) ? q : []; }
+  function enqueue(id, what) {
+    var q = pending(), it = null;
+    for (var i = 0; i < q.length; i++) if (q[i].id === id) it = q[i];
+    if (!it) { it = { id: id }; q.push(it); }
+    if (what.ai) it.ai = true;
+    if (what.wx) it.wx = true;
+    C.store.setJSON(Q_KEY, q);
+    renderQueue();
+  }
+  function dequeue(id, what) {
+    var q = pending().map(function (it) {
+      if (it.id !== id) return it;
+      if (what.ai) delete it.ai;
+      if (what.wx) delete it.wx;
+      return it;
+    }).filter(function (it) { return it.ai || it.wx; });
+    C.store.setJSON(Q_KEY, q);
+    renderQueue();
+  }
+  function renderQueue() {
+    var n = el('log-storage'), q = pending();
+    if (!n) return;
+    n.setAttribute('data-queue', q.length ? q.length + ' buổi đang chờ có mạng để đọc ảnh / lấy thời tiết' : '');
+  }
+  function offline() { return typeof navigator.onLine === 'boolean' && !navigator.onLine; }
+  function netErr(e) { return !!e && /kết nối|không trả lời|quá lâu/i.test(e.message || ''); }
+  var draining = false;
+  function drain() {
+    var q = pending();
+    if (draining || !q.length || offline()) return;
+    draining = true;
+    var done = 0;
+    q.reduce(function (p, it) {
+      return p.then(function () {
+        var r = findRun(it.id);
+        if (!r) { dequeue(it.id, { ai: true, wx: true }); return null; }
+        var step = Promise.resolve();
+        if (it.ai && r.blob && V.hasKey()) {
+          step = step.then(function () { return V.analyze(r.blob, true).data; }).then(function (d) {
+            var got = false;
+            NUM.forEach(function (f) { if (d[f] && !r[f]) { r[f] = d[f]; got = true; } });
+            if (d.kind && got) r.kind = d.kind;
+            if (got) r.cat = 'strava';
+            return RL.saveRun(r).then(function () { dequeue(it.id, { ai: true }); if (got) done++; });
+          }).catch(function (e) { if (!netErr(e)) dequeue(it.id, { ai: true }); });
+        } else if (it.ai) dequeue(it.id, { ai: true });
+        if (it.wx) {
+          step = step.then(function () {
+            if (!W || !W.enabled()) { dequeue(it.id, { wx: true }); return null; }
+            return W.attach([r]).then(function (res) {
+              if (res.done.length) return RL.saveRun(r).then(function () { dequeue(it.id, { wx: true }); done++; });
+              if (!res.failed) dequeue(it.id, { wx: true });
+            });
+          });
+        }
+        return step;
+      });
+    }, Promise.resolve()).then(function () {
+      draining = false;
+      if (done) { renderRecent(); C.toast('Đã bổ sung ' + done + ' buổi đang chờ', 'Đọc ảnh / thời tiết sau khi có mạng'); }
+    });
+  }
+
+  /* ================= ảnh được chia sẻ từ app khác ================= */
+  // Service worker cất ảnh vào cache "bn27-share" rồi mở trang này với ?share=1.
+  function takeShared() {
+    if (!C.qs('share') || !('caches' in window)) return;
+    try { history.replaceState(null, '', 'log.html'); } catch (e) {}
+    caches.open('bn27-share').then(function (c) {
+      return c.keys().then(function (keys) {
+        keys.sort(function (a, b) { return a.url.localeCompare(b.url); });
+        return Promise.all(keys.map(function (k) {
+          return c.match(k).then(function (res) {
+            return res.blob().then(function (b) {
+              var name = decodeURIComponent(res.headers.get('X-Name') || '') || 'strava.jpg';
+              try { return new File([b], name, { type: b.type || 'image/jpeg', lastModified: Number(res.headers.get('X-Modified')) || Date.now() }); }
+              catch (e) { return b; }
+            });
+          });
+        })).then(function (files) {
+          return Promise.all(keys.map(function (k) { return c.delete(k); })).then(function () { return files; });
+        });
+      });
+    }).then(function (files) {
+      if (files.length) { pickFiles(files); C.toast('Đã nhận ' + files.length + ' ảnh được chia sẻ', ''); }
+    }).catch(function () {});
+  }
+
   /* ================= thời tiết ================= */
   // Lưu buổi trước, gắn thời tiết sau: mạng chậm hay lỗi không làm chậm hay
   // hỏng việc lưu. Buổi nào lấy được thời tiết thì lưu lại lần nữa.
   function addWeather(list) {
     if (!W || !W.enabled() || !list.length) return;
+    if (offline()) { list.forEach(function (r) { if (W.needs(r)) enqueue(r.id, { wx: true }); }); return; }
     W.attach(list).then(function (res) {
+      if (res.failed) list.forEach(function (r) { if (W.needs(r)) enqueue(r.id, { wx: true }); });
       return res.done.reduce(function (p, r) { return p.then(function () { return RL.saveRun(r); }); }, Promise.resolve())
         .then(function () { if (res.done.length) renderRecent(); });
     }).catch(function () {});
@@ -313,6 +410,7 @@
       return RL.saveRun(r).then(function (ok) {
         if (ok === null) { C.toast('Không lưu được', 'Kiểm tra dung lượng trình duyệt'); return; }
         if (wasNew) runs.unshift(r);
+        if (photo && photo.netFail && !km && !time && V.hasKey()) enqueue(r.id, { ai: true });
         if (t) { B.setDone(t.b, t.x.id, true); celebrate(t, btn); }
         var base = (r.km ? r.km + ' km' : '') + (r.km && r.time ? ' · ' : '') + (r.time || '');
         var warn = wasNew ? shoeAlert(r) : '';
@@ -855,6 +953,10 @@
       shoeHint();
       var id = C.qs('edit'), r = id && findRun(id);
       if (r) startEdit(r);
+      renderQueue();
+      takeShared();
+      drain();
+      window.addEventListener('online', drain);
     });
   }
 

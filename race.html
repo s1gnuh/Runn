@@ -85,6 +85,12 @@
           <label class="fld"><span>Cự ly (km)</span><input type="number" id="race-km" min="0" step="any"></label>
         </div>
         <label class="fld"><span>Giáo án</span><select id="race-template"></select></label>
+        <div class="race-form-row race-gen" id="race-gen" hidden>
+          <label class="fld"><span>Mục tiêu thời gian</span><input type="text" id="race-goal" inputmode="numeric" autocomplete="off" placeholder="55:00"></label>
+          <label class="fld"><span>Số buổi mỗi tuần</span>
+            <select id="race-days"><option value="3">3 buổi</option><option value="4" selected>4 buổi</option><option value="5">5 buổi</option><option value="6">6 buổi</option></select>
+          </label>
+        </div>
         <p class="hint" id="race-template-desc"></p>
         <div class="panel-actions">
           <button type="submit" class="btn-sm primary">Lưu thay đổi</button>

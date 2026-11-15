@@ -274,6 +274,136 @@ window.Templates = (function (Core) {
                   : buildLegacy(tpl, raceTitle, raceDesc, raceKm);
   }
 
+  /* ================= giáo án riêng theo mục tiêu ================= */
+  // Sinh một khuôn cùng dạng với khuôn theo cấp độ (days có role, weeks có
+  // e/l/q) nên mọi thứ phía sau — buildByRole, Blocks, Adapt, Lịch tập — dùng
+  // nguyên, không cần biết đây là khuôn sinh ra hay dựng sẵn.
+  //
+  // opts: { raceKm, goalSec, weeks (6–20), daysPerWeek (3–6), startKm (km/tuần
+  //         hiện tại, tuỳ chọn), easyBand ({lo,hi} giây/km từ dự đoán, tuỳ chọn), id }
+  //
+  // Pace: từ mục tiêu suy ra pace 10K tương đương (Riegel, hệ số 1,06) rồi lấy
+  // cùng tỷ lệ với Predict.zones: nhẹ ×1,14–1,28, tempo ×1,04, interval ≈ pace 5K.
+  // Pace nhẹ ưu tiên theo thể lực HIỆN TẠI (easyBand) vì chạy nhẹ theo mục tiêu
+  // xa thì quá nhanh; pace buổi chất lượng theo mục tiêu.
+  // Khối lượng: từ mức hiện tại lên đỉnh theo cự ly, mỗi tuần tăng tối đa 10%,
+  // tuần thứ 4 giảm tải, 2–3 tuần cuối giảm dần, tuần cuối thi đấu.
+  var GEN_MIN_START = { 5: 10, 10: 15, 21: 25, 42: 40 };
+  var GEN_PEAK = { 5: 28, 10: 40, 21: 55, 42: 75 };
+  var GEN_LONG_CAP = { 5: 10, 10: 15, 21: 21, 42: 32 };
+  // 3 buổi/tuần: khuôn dựng sẵn D3 toàn buổi nhẹ (cho người mới), nhưng giáo án theo
+  // mục tiêu cần một buổi chất lượng, nên có bộ ngày riêng.
+  var GEN_D3 = [
+    { k: 'e1', def: 0, name: 'Chạy nhẹ', role: 'easy', ei: 0 },
+    { k: 'q1', def: 2, name: 'Chất lượng', role: 'quality', qi: 0 },
+    { k: 'lg', def: 6, name: 'Chạy dài', role: 'long' }
+  ];
+  var GEN_DAYS = { 3: GEN_D3, 4: D4, 5: D5, 6: D6 };
+
+  function genBucket(km) { return km >= 35 ? 42 : km >= 18 ? 21 : km >= 8 ? 10 : 5; }
+  function mmss(sec) { sec = Math.round(sec); return Math.floor(sec / 60) + ':' + Core.pad(sec % 60); }
+  function r05(x) { return Math.round(x * 2) / 2; }
+  function hhmmss(sec) {
+    sec = Math.round(sec);
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return (h ? h + ':' + Core.pad(m) : m) + ':' + Core.pad(s);
+  }
+  function genLabel(km) { var b = genBucket(km); return b === 42 ? 'Full' : b === 21 ? 'Half' : b + 'K'; }
+
+  function generate(opts) {
+    var raceKm = Number(opts.raceKm) || 10, goal = Number(opts.goalSec) || 0, bucket = genBucket(raceKm);
+    var N = Math.max(6, Math.min(20, Math.round(opts.weeks) || 12));
+    var dpw = Math.max(3, Math.min(6, Math.round(opts.daysPerWeek) || 4)), days = GEN_DAYS[dpw];
+    var nq = days.filter(function (d) { return d.role === 'quality'; }).length;
+    var ne = days.filter(function (d) { return d.role === 'easy'; }).length;
+
+    // ---- pace ----
+    var tp = goal / raceKm;
+    var base = goal * Math.pow(10 / raceKm, 1.06) / 10;              // pace 10K tương đương
+    var p5 = base * 0.97, tempo = base * 1.04, inter = p5 * 0.99;
+    var easyLo = Math.round(base * 1.14), easyHi = Math.round(base * 1.28);
+    if (opts.easyBand && opts.easyBand.lo && opts.easyBand.hi) {
+      // thể lực hiện tại chậm hơn mục tiêu thì chạy nhẹ theo hiện tại; nhanh hơn thì theo mục tiêu
+      if (opts.easyBand.lo > easyLo) { easyLo = opts.easyBand.lo; easyHi = opts.easyBand.hi; }
+    }
+    var easyTxt = mmss(easyLo) + '–' + mmss(easyHi), longTxt = mmss(easyLo) + '–' + mmss(Math.round((easyLo + easyHi) / 2));
+    var tpTxt = mmss(tp), tempoTxt = mmss(tempo), interTxt = mmss(inter), p5Txt = mmss(p5);
+
+    // ---- khối lượng từng tuần ----
+    var taper = N >= 12 ? 3 : 2, buildN = N - taper;
+    var start = Math.max(Number(opts.startKm) || 0, GEN_MIN_START[bucket]);
+    var peak = Math.max(GEN_PEAK[bucket], start * 1.25);
+    peak = Math.min(peak, start * 2);
+    var deload = {};
+    for (var w = 3; w < buildN - 1; w += 4) deload[w] = true;        // tuần 4, 8, 12... (chỉ số 0)
+    var steps = 0;
+    for (w = 1; w < buildN; w++) if (!deload[w]) steps++;
+    var ratio = steps ? Math.min(1.10, Math.pow(peak / start, 1 / steps)) : 1;
+    peak = start * Math.pow(ratio, steps);                            // đỉnh thật sau khi giới hạn 10%/tuần
+    var vols = [], cur = start;
+    for (w = 0; w < buildN; w++) {
+      if (w > 0 && !deload[w]) cur = cur * ratio;
+      vols.push(deload[w] ? cur * 0.8 : cur);
+    }
+    if (taper === 3) vols.push(peak * 0.72);
+    vols.push(peak * 0.55);
+    vols.push(peak * 0.4);                                            // tuần thi đấu, chưa kể buổi thi
+
+    // ---- phân bổ và chọn buổi ----
+    var baseN = Math.max(1, Math.round(buildN * 0.4)), specStart = baseN + Math.max(1, Math.round(buildN * 0.35));
+    var longShare = bucket >= 21 ? 0.36 : 0.32, longCap = GEN_LONG_CAP[bucket];
+    var weeks = [], ttDone = false;
+    for (w = 0; w < N; w++) {
+      var isRace = w === N - 1, isTaper = w >= buildN, isDeload = !!deload[w];
+      var phase = isRace ? 'Tuần thi đấu' : isTaper ? 'Giảm tải' : w < baseN ? 'Nền tảng' : w < specStart ? 'Xây sức bền' : 'Đặc thù cự ly';
+      var vol = vols[w], l = Math.min(longCap, Math.max(5, r05(vol * longShare)));
+      var qKm = Math.max(5, Math.min(14, r05(vol * (nq === 2 ? 0.17 : 0.2))));
+      var easyKm = Math.max(0, vol - l - qKm * nq), e = [], i;
+      for (i = 0; i < ne; i++) e.push(Math.max(3, r05(easyKm / ne * (i === 0 ? 1.1 : 0.9))));
+      var q = [], nt = '';
+      if (isRace) {
+        q = [qStrides(5, Math.max(4, r05(qKm * 0.6))), null];
+        e = e.map(function (x, j) { return j === 0 ? Math.max(3, r05(x * 0.7)) : null; });
+        l = raceKm;
+        nt = 'Hai ngày trước giải không chạy hoặc chỉ 15–20 phút rất nhẹ. Xuất phát đúng ' + tpTxt + '/km, không nhanh hơn dù thấy khoẻ.';
+      } else if (isTaper) {
+        q = [qIntKm(4, 1, interTxt, qKm), qStrides(6, Math.max(4, r05(qKm * 0.7)))];
+        nt = w === buildN ? 'Bắt đầu giảm tải: bớt km, giữ nguyên cường độ.' : 'Khối lượng còn khoảng một nửa đỉnh. Ngủ đủ, ăn đủ.';
+      } else if (phase === 'Nền tảng') {
+        q = [w % 3 === 0 ? qFartlek(6, 2, qKm) : w % 3 === 1 ? qHill(6, qKm) : qStrides(6, qKm), qInt(5, 3, interTxt, qKm)];
+        if (w === 0) nt = 'Tuần đầu của giáo án riêng theo mục tiêu ' + genLabel(raceKm) + ' ' + hhmmss(goal) + '. Pace chạy nhẹ ' + easyTxt + ' là mức nói được cả câu.';
+      } else if (phase === 'Xây sức bền') {
+        var reps = Math.max(3, Math.min(8, Math.round(qKm - 4)));
+        q = [(w - baseN) % 2 === 0 ? qIntKm(reps, 1, interTxt, qKm) : qTempo(Math.max(3, r05(qKm * 0.55)), tempoTxt, qKm),
+             qInt(4, 4, tempoTxt, qKm)];
+      } else {
+        if (!ttDone) {
+          ttDone = true;
+          q = [qTT(bucket >= 21 ? 5 : 3, qKm), qTempo(Math.max(3, r05(qKm * 0.5)), tempoTxt, qKm)];
+          nt = 'Chạy thử hết sức để đối chiếu với mục tiêu ' + hhmmss(goal) + '. Kết quả này sẽ chỉnh lại pace các tuần sau (Lịch tập → Gợi ý chỉnh giáo án).';
+        } else if (bucket === 5) {
+          q = [qIntKm(Math.max(4, Math.min(6, Math.round(qKm - 4))), 1, p5Txt, qKm), qTempo(3, tempoTxt, qKm)];
+        } else if (bucket === 10) {
+          q = [(w % 2 ? qIntKm(3, 2, tpTxt, qKm) : qTempo(Math.max(4, r05(qKm * 0.5)), tpTxt, qKm)), qIntKm(5, 1, interTxt, qKm)];
+        } else {
+          q = [(w % 2 ? qTempo(Math.max(6, r05(qKm * 0.7)), tpTxt, qKm) : qProgress(Math.max(6, r05(qKm * 0.8)), qKm)), qIntKm(4, 2, tempoTxt, qKm)];
+        }
+        if (w === specStart + 1 || (vol >= peak * 0.98 && !nt)) nt = nt || 'Tuần nặng nhất. Có dấu hiệu quá tải kéo dài thì cắt buổi chất lượng, không cắt buổi dài.';
+      }
+      if (isDeload && !nt) nt = 'Tuần nhẹ có chủ đích, khoảng 80% tuần trước. Cơ thể khoẻ lên trong lúc nghỉ.';
+      weeks.push({ ph: phase, e: e, l: l, q: q.slice(0, nq), race: isRace || undefined, nt: nt || undefined });
+    }
+
+    var id = opts.id || Core.uid('gen-');
+    return {
+      id: id, gen: true, level: 0, levelLabel: 'Riêng',
+      name: 'Giáo án riêng · ' + genLabel(raceKm) + ' ' + hhmmss(goal) + ' — ' + N + ' tuần, ' + dpw + ' buổi/tuần',
+      desc: 'Sinh theo mục tiêu ' + genLabel(raceKm) + ' ' + hhmmss(goal) + ' (' + tpTxt + '/km). Khởi điểm ' + Math.round(start) + ' km/tuần, đỉnh khoảng ' + Math.round(peak) + ' km/tuần, tăng tối đa 10% mỗi tuần, tuần thứ 4 giảm tải.',
+      goal: { raceKm: raceKm, goalSec: goal }, pace: { easy: [easyLo, easyHi], tempo: Math.round(tempo), interval: Math.round(inter), race: Math.round(tp) },
+      easyPace: easyTxt, longPace: longTxt, days: days, weeks: weeks
+    };
+  }
+
   /* ================= lưu trữ ================= */
   // Khuôn dựng sẵn sống trong code nên luôn thắng bản lưu trong localStorage;
   // localStorage chỉ để giữ khuôn do người dùng tự thêm.
@@ -296,6 +426,14 @@ window.Templates = (function (Core) {
     saved[tpl.id] = tpl;
     Core.store.setJSON(KEY, saved);
     return tpl;
+  }
+  // Chỉ xoá được khuôn người dùng / khuôn sinh ra; khuôn dựng sẵn sống trong code.
+  function remove(id) {
+    if (BUILTIN_MAP[id]) return false;
+    var saved = Core.store.getJSON(KEY, null) || {};
+    delete saved[id];
+    Core.store.setJSON(KEY, saved);
+    return true;
   }
 
   // Số tuần và tổng km dự kiến của một khuôn — để hiện kèm lúc chọn.
@@ -324,8 +462,8 @@ window.Templates = (function (Core) {
 
   return {
     PERIODIZED_12W_ID: PERIODIZED_12W.id,
-    all: all, get: get, list: list, levels: levels, save: save, summary: summary,
-    buildSessions: buildSessions,
+    all: all, get: get, list: list, levels: levels, save: save, remove: remove, summary: summary,
+    buildSessions: buildSessions, generate: generate,
     startFromRaceDate: startFromRaceDate, raceDateFromStart: raceDateFromStart
   };
 })(window.Core);

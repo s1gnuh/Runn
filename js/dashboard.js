@@ -170,7 +170,12 @@
   }
 
   /* ================= form tạo giải ================= */
-  function syncTemplateDesc() { el('race-template-desc').textContent = RF.describe(el('race-template').value); }
+  function syncTemplateDesc() {
+    var v = el('race-template').value;
+    el('race-template-desc').textContent = RF.describe(v);
+    el('race-gen').hidden = v !== RF.GEN;
+    if (v === RF.GEN && !el('race-goal').value) el('race-goal').focus();
+  }
   function openCreate() {
     el('race-form').reset();
     el('race-form').hidden = false;
@@ -203,8 +208,10 @@
     on('race-form', 'submit', function (e) {
       e.preventDefault();
       var res = RF.save({ name: el('race-name').value, date: el('race-date').value,
-                          km: el('race-km').value, templateId: el('race-template').value });
+                          km: el('race-km').value, templateId: el('race-template').value,
+                          goal: el('race-goal').value, days: el('race-days').value, runs: runs });
       if (!res) return;
+      if (res.error) { C.toast('Chưa tạo được giải', res.error); return; }
       closeRaceForm();
       renderAll();
       C.toast('Đã tạo giải mới', res.race.name + (res.race.blockId ? ' · đã sinh giáo án' : ''));

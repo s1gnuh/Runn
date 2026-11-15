@@ -189,6 +189,20 @@ window.Vision = (function (Core) {
       .then(function () { return Date.now() - t0; });
   }
 
+  // Hỏi đáp ngắn về chính số liệu của người dùng. history: [{q, a}] vài lượt gần
+  // nhất để hỏi tiếp được ("còn tuần sau thì sao?"). Cùng nguyên tắc với báo cáo:
+  // mọi con số lấy từ JSON, AI không tự tính.
+  var ASK_PROMPT = 'Bạn là huấn luyện viên chạy bộ, trả lời tiếng Việt, thân thiện, đi thẳng vào câu hỏi. '
+    + 'Chỉ dựa vào JSON số liệu của người hỏi bên dưới; các số dự đoán, pace gợi ý, tải tập luyện đã được app tính sẵn, '
+    + 'dùng đúng số đó, không tự tính hay bịa thêm. Không đưa lời khuyên y tế; có dấu hiệu chấn thương thì khuyên gặp bác sĩ. '
+    + 'Thiếu dữ liệu để trả lời thì nói rõ thiếu gì. Tối đa 120 từ, được dùng gạch đầu dòng "- ", không dùng bảng, không tiêu đề.\n\n';
+  function ask(payload, question, history) {
+    var convo = (history || []).slice(-4).map(function (t) { return 'Người hỏi: ' + t.q + '\nHLV: ' + t.a; }).join('\n\n');
+    var text = ASK_PROMPT + 'Số liệu:\n' + JSON.stringify(payload)
+      + (convo ? '\n\nHội thoại trước:\n' + convo : '') + '\n\nNgười hỏi: ' + String(question || '').slice(0, 300) + '\nHLV:';
+    return generate([{ text: text }], { temperature: 0.4, maxOutputTokens: 500 });
+  }
+
   // Báo cáo văn bản từ số liệu đã tính sẵn (xem REPORT_PROMPT).
   function report(payload) {
     return generate([{ text: REPORT_PROMPT + JSON.stringify(payload) }],
@@ -198,6 +212,6 @@ window.Vision = (function (Core) {
   return {
     DEFAULT_MODEL: DEFAULT_MODEL,
     getKey: getKey, setKey: setKey, getModel: getModel, setModel: setModel, hasKey: hasKey,
-    analyze: analyze, test: test, report: report
+    analyze: analyze, test: test, report: report, ask: ask
   };
 })(window.Core);

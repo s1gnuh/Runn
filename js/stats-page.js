@@ -382,6 +382,127 @@
     }));
   }
 
+  /* ================= thể lực theo thời gian ================= */
+  // Dự đoán 10K tính lại tại từng tuần (chỉ với các buổi tới tuần đó), rồi kéo
+  // dài xu hướng 8 tuần gần nhất để ước ngày đạt mục tiêu của giải sắp tới.
+  var fitWidth = 0, FIT_WEEKS = 26;
+  function fitRuns() {
+    // Chế độ "quy đổi trời mát" áp cho cả đường thể lực để mùa hè không kéo đường đi xuống.
+    if (paceMode !== 'adj') return runs;
+    return runs.map(function (r) {
+      if (!r.wx || !RL.parseTime(r.time)) return r;
+      var c = {}; Object.keys(r).forEach(function (k) { c[k] = r[k]; });
+      c.time = RL.formatTime(W.adjust(RL.parseTime(r.time), r.wx));
+      return c;
+    });
+  }
+  function fitSeries() {
+    var P = window.Predict, t0 = C.today0(), wk = RL.thisWeekRange(t0), src = fitRuns(), out = [];
+    for (var i = FIT_WEEKS - 1; i >= 0; i--) {
+      var day = i === 0 ? t0 : C.addDays(wk.end, -7 * i);
+      var p = P.compute(src, day).preds['10'];
+      out.push({ date: day, sec: p && p.timeSec ? p.timeSec : 0, low: !!(p && p.confidence === 'thấp') });
+    }
+    return out;
+  }
+  // Hồi quy tuyến tính giây/tuần trên các điểm có dữ liệu trong 8 tuần cuối.
+  function fitTrend(series) {
+    var pts = series.slice(-8).filter(function (p) { return p.sec > 0; });
+    if (pts.length < 4) return null;
+    var n = pts.length, sx = 0, sy = 0, sxy = 0, sxx = 0;
+    pts.forEach(function (p, i) { sx += i; sy += p.sec; sxy += i * p.sec; sxx += i * i; });
+    var slope = (n * sxy - sx * sy) / (n * sxx - sx * sx);
+    return { slope: slope, last: pts[pts.length - 1].sec, n: n };
+  }
+  function renderFitness() {
+    var P = window.Predict, box = el('fit-chart'), series = fitSeries(), t0 = C.today0();
+    fitWidth = box.clientWidth;
+    var have = series.filter(function (p) { return p.sec > 0; });
+    el('fit-goal').hidden = true;
+    if (have.length < 3) {
+      box.innerHTML = '<div class="ch-empty">Cần nhật ký trải qua ít nhất 3 tuần, có buổi ghi cả km lẫn thời gian, để vẽ đường thể lực.</div>';
+      el('fit-legend').hidden = true; el('fit-sum').textContent = ''; el('fit-table').innerHTML = '';
+      return;
+    }
+    var pts = [], rows = [];
+    series.forEach(function (p, i) {
+      if (!p.sec) return;
+      var win = series.slice(Math.max(0, i - 2), i + 1).filter(function (q) { return q.sec > 0; });
+      var avg = Math.round(win.reduce(function (a, q) { return a + q.sec; }, 0) / win.length);
+      pts.push({ t: p.date.getTime(), v: p.sec, avg: avg, head: 'Tuần tới ' + fullDate(p.date),
+                 rows: RL.formatTime(p.sec) + '|dự đoán 10K~' + P.paceText(Math.round(p.sec / 10)) + '/km|pace tương ứng~' + RL.formatTime(avg) + '|trung bình 3 tuần' + (p.low ? '~độ tin cậy thấp|' : '') });
+      rows.push([fullDate(p.date), RL.formatTime(p.sec), P.paceText(Math.round(p.sec / 10)) + '/km']);
+    });
+    CH.paceLine(box, { pts: pts, from: series[0].date.getTime(), to: t0.getTime(), fmt: RL.formatTime,
+                       aria: 'Dự đoán 10K qua ' + pts.length + ' tuần, hiện ' + RL.formatTime(pts[pts.length - 1].v) });
+    el('fit-legend').hidden = false;
+    var first = pts[0].avg, last = pts[pts.length - 1].avg, diff = last - first, tr = fitTrend(series);
+    var s = 'Dự đoán 10K hiện <b class="num">' + RL.formatTime(pts[pts.length - 1].v) + '</b>, xu hướng trung bình 3 tuần ' + (Math.abs(diff) < 15 ? 'gần như không đổi' : (diff < 0 ? 'nhanh hơn ' : 'chậm hơn ') + RL.formatTime(Math.abs(diff)))
+      + ' so với đầu giai đoạn.';
+    if (tr) s += ' Xu hướng 8 tuần: ' + (Math.abs(tr.slope) < 3 ? 'đi ngang' : (tr.slope < 0 ? 'nhanh thêm ' : 'chậm đi ') + Math.round(Math.abs(tr.slope)) + ' giây mỗi tuần') + '.';
+    if (paceMode === 'adj') s += ' Đang dùng pace quy đổi trời mát.';
+    el('fit-sum').innerHTML = s;
+    el('fit-table').innerHTML = CH.table(['Tuần tới', '10K dự đoán', 'Pace'], rows.slice(-12).reverse());
+
+    // Mục tiêu của giải sắp tới (có cự ly khớp một mốc dự đoán và có mục tiêu A dạng thời gian).
+    var R = window.Races, race = R.upcoming()[0];
+    if (!race || !tr) return;
+    var target = RL.parseTime(race.targetA), tk = P.TARGETS.filter(function (t) { return race.distanceKm && Math.abs(race.distanceKm - t.km) / t.km <= 0.05; })[0];
+    if (!target || !tk) return;
+    var full = P.compute(fitRuns()).preds[tk.key];
+    if (!full || !full.timeSec) return;
+    // slope theo 10K → quy về cự ly giải theo tỷ lệ thời gian hiện tại
+    var slope = tr.slope * (full.timeSec / tr.last), weeksLeft = Math.max(0, (C.fromIso(race.date) - t0) / 6048e5);
+    var atRace = Math.round(full.timeSec + slope * weeksLeft), gap = full.timeSec - target, g = el('fit-goal');
+    var lines = ['Mục tiêu ' + C.esc(race.name) + ': <b class="num">' + RL.formatTime(target) + '</b> (' + tk.label + '). Hiện dự đoán <b class="num">' + RL.formatTime(full.timeSec) + '</b>, '
+      + (gap <= 0 ? 'đã nhanh hơn mục tiêu ' + RL.formatTime(-gap) : 'còn cách ' + RL.formatTime(gap)) + '.'];
+    if (gap > 0) {
+      if (slope < -1) {
+        var weeksNeed = gap / -slope, when = C.addDays(t0, Math.round(weeksNeed * 7));
+        lines.push(weeksNeed <= weeksLeft
+          ? 'Giữ nhịp này thì đạt mục tiêu vào khoảng <b>' + fullDate(when) + '</b>, trước ngày thi ' + Math.round(weeksLeft - weeksNeed) + ' tuần.'
+          : 'Theo nhịp hiện tại thì đạt vào khoảng <b>' + fullDate(when) + '</b>, sau ngày thi. Dự đoán tới ngày thi: <b class="num">' + RL.formatTime(atRace) + '</b>. Cân nhắc mục tiêu B hoặc tăng buổi chất lượng.');
+      } else {
+        lines.push('Thể lực đang đi ngang hoặc giảm nên chưa ước được ngày đạt. Dự đoán tới ngày thi: <b class="num">' + RL.formatTime(atRace) + '</b>.');
+      }
+    } else {
+      lines.push('Dự đoán tới ngày thi: <b class="num">' + RL.formatTime(atRace) + '</b>.');
+    }
+    g.innerHTML = lines.map(function (l) { return '<p>' + l + '</p>'; }).join('');
+    g.hidden = false;
+  }
+
+  /* ================= hỏi AI về dữ liệu của mình ================= */
+  var CHAT_KEY = 'app-ai-chat', chat = C.store.getJSON(CHAT_KEY, []), asking = false;
+  if (!Array.isArray(chat)) chat = [];
+  function renderChat() {
+    var box = el('ai-chat');
+    if (!box) return;
+    box.innerHTML = chat.map(function (t) {
+      return '<div class="ai-q">' + C.esc(t.q) + '</div><div class="ai-a">' + mdHtml(t.a) + '</div>';
+    }).join('') + (asking ? '<div class="ai-q">' + C.esc(asking) + '</div><div class="ai-a hint busy">Đang trả lời...</div>' : '')
+      + (chat.length ? '<button type="button" class="lnk ai-clear" id="ai-clear">Xoá lịch sử hỏi đáp</button>' : '');
+    box.hidden = !chat.length && !asking;
+    var b = el('ai-clear');
+    if (b) b.addEventListener('click', function () { chat = []; C.store.setJSON(CHAT_KEY, chat); renderChat(); });
+    if (asking) box.lastElementChild.scrollIntoView({ block: 'nearest' });
+  }
+  function askAi(q) {
+    var V = window.Vision, st = el('ai-status');
+    q = String(q || '').trim();
+    if (!q || asking) return;
+    if (!V.hasKey()) { renderReport(); st.scrollIntoView({ block: 'center' }); return; }
+    if (!runs.length) { st.textContent = 'Chưa có buổi chạy nào để hỏi.'; return; }
+    asking = q; el('ai-q').value = ''; el('ai-send').disabled = true; renderChat();
+    V.ask(aiPayload(), q, chat).then(function (a) {
+      chat.push({ q: q, a: a, at: Date.now() });
+      if (chat.length > 20) chat = chat.slice(-20);
+      C.store.setJSON(CHAT_KEY, chat);
+    }).catch(function (e) {
+      chat.push({ q: q, a: '_Không trả lời được: ' + (e.message || 'lỗi không rõ') + '_', at: Date.now(), err: true });
+    }).then(function () { asking = false; el('ai-send').disabled = false; renderChat(); });
+  }
+
   /* ================= phân bố cự ly ================= */
   var BANDS = [
     { label: 'Dưới 5 km', hi: 5 }, { label: '5–10 km', hi: 10 }, { label: '10–15 km', hi: 15 },
@@ -739,8 +860,8 @@
   }
 
   function renderAll() {
-    renderWeek(); renderTiles(); renderHeatmap(); renderVolume(); renderInsights(); renderLoad(); renderPace(); renderDist();
-    renderPR(); renderPredict(); renderGoals(); renderShoes(); renderReport();
+    renderWeek(); renderTiles(); renderHeatmap(); renderVolume(); renderInsights(); renderLoad(); renderPace(); renderFitness(); renderDist();
+    renderPR(); renderPredict(); renderGoals(); renderShoes(); renderReport(); renderChat();
   }
 
   function bindEvents() {
@@ -761,7 +882,12 @@
       if (!b || b.getAttribute('data-pm') === paceMode) return;
       paceMode = b.getAttribute('data-pm');
       C.store.set('app-stats-pace', paceMode);
-      syncPaceSeg(); renderPace();
+      syncPaceSeg(); renderPace(); renderFitness();
+    });
+    on('ai-form', 'submit', function (e) { e.preventDefault(); askAi(el('ai-q').value); });
+    on('ai-chips', 'click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-q]') : null;
+      if (b) askAi(b.getAttribute('data-q'));
     });
     on('goal-add-toggle', 'click', function () { el('goal-form').hidden = !el('goal-form').hidden; });
     on('goal-type', 'change', function () {
@@ -789,6 +915,7 @@
         if (!runs.length && !paceWidth) return;
         if (el('pace-chart').clientWidth !== paceWidth) renderPace();
         if (el('load-chart').clientWidth !== loadWidth) renderLoad();
+        if (el('fit-chart').clientWidth !== fitWidth) renderFitness();
         if (heatWeeks() !== hmWeeks) renderHeatmap();
       }, 150);
     });

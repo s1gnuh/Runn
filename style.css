@@ -921,6 +921,7 @@ details.week[open] .wk-head::after { transform: rotate(225deg); margin-top: 4px;
 .lf-more .lf-wide { grid-column: 1 / -1; }
 .lf-sum { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--muted); }
 .rc-wx { font-size: 12.5px; color: var(--muted); }
+#log-storage[data-queue]:not([data-queue=""])::after { content: " · " attr(data-queue); color: var(--quality); }
 
 /* ===== Cài đặt: thời tiết ===== */
 .wx-results { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -957,3 +958,23 @@ details.week[open] .wk-head::after { transform: rotate(225deg); margin-top: 4px;
 .qe-when .qe-days { flex: 0 0 auto; margin-top: 0; }
 .qe-when .qe-days button { flex: 0 0 auto; padding: 6px 10px; }
 .qe-nums input::placeholder { opacity: .3; }
+
+/* ===== Thể lực theo thời gian ===== */
+.fit-goal { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 10px; background: var(--easy-bg); font-size: 13.5px; line-height: 1.5; }
+.fit-goal p { margin: 0; }
+
+/* ===== Hỏi AI về dữ liệu của mình ===== */
+.ai-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.ai-chips::-webkit-scrollbar { display: none; }
+.ai-chips .btn-sm { flex: 0 0 auto; font-weight: 500; }
+.ai-chat { display: flex; flex-direction: column; gap: 8px; }
+.ai-q { align-self: flex-end; max-width: 85%; padding: 8px 12px; border-radius: 14px 14px 4px 14px; background: var(--fg); color: var(--bg); font-size: 14px; line-height: 1.45; }
+.ai-a { align-self: flex-start; max-width: 92%; padding: 8px 12px; border-radius: 14px 14px 14px 4px; background: var(--bg); font-size: 14px; line-height: 1.5; }
+.ai-a p { margin: 0 0 6px; } .ai-a p:last-child { margin: 0; }
+.ai-a ul { margin: 0; padding-left: 18px; }
+.ai-clear { align-self: flex-end; }
+.ai-ask { display: flex; gap: 8px; }
+.ai-ask input { flex: 1 1 auto; min-width: 0; font: inherit; font-size: 14px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; }
+
+/* ===== Giáo án riêng theo mục tiêu ===== */
+.race-gen { padding: 10px 12px; border-radius: 10px; background: var(--easy-bg); }

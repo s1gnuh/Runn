@@ -27,6 +27,15 @@ window.Notify = (function (Core, Blocks) {
 
   /* ---------- gom "hôm nay" từ mọi block đang active ---------- */
   function activeBlocks() { return Blocks.list().filter(Blocks.isActive); }
+  // Pace ghi trong buổi (giây/km): điểm giữa "Pace a–b" của buổi nhẹ/dài, hoặc
+  // "@ m:ss" đầu tiên của buổi chất lượng. Máy chủ dùng để nói "khoảng x:xx/km"
+  // sau khi cộng mức chậm do nóng ẩm. Không có thì bỏ trống.
+  function paceOf(s) {
+    var txt = (s.title || '') + ' ' + (s.d || ''), m = /Pace (\d{1,2}):(\d{2})\s*[–-]\s*(\d{1,2}):(\d{2})/.exec(txt);
+    if (m) return Math.round((+m[1] * 60 + +m[2] + +m[3] * 60 + +m[4]) / 2);
+    m = /@ (\d{1,2}):(\d{2})/.exec(txt);
+    return m ? +m[1] * 60 + +m[2] : 0;
+  }
   function buildDays() {
     var out = [], seen = {};
     activeBlocks().forEach(function (b) {
@@ -35,7 +44,9 @@ window.Notify = (function (Core, Blocks) {
         var key = b.id + ':' + x.id;
         if (seen[key]) return;
         seen[key] = 1;
-        out.push({ date: Core.iso(x.date), title: x.s.title, done: !!b.done[x.id] });
+        var d = { date: Core.iso(x.date), title: x.s.title, done: !!b.done[x.id], type: x.s.type }, p = paceOf(x.s);
+        if (p) d.pace = p;
+        out.push(d);
       });
     });
     return out;
@@ -124,7 +135,8 @@ window.Notify = (function (Core, Blocks) {
     return fetch('api/subscribe', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscription: sub, on: cfg.on, time: cfg.time,
-        tz: (Intl.DateTimeFormat().resolvedOptions() || {}).timeZone || 'Asia/Ho_Chi_Minh', days: buildDays() })
+        tz: (Intl.DateTimeFormat().resolvedOptions() || {}).timeZone || 'Asia/Ho_Chi_Minh', days: buildDays(),
+        wx: window.Weather ? window.Weather.forPush() : null })
     }).catch(function () {});
   }
   function pushState() {
@@ -208,6 +220,8 @@ window.Notify = (function (Core, Blocks) {
 
   return {
     render: render,
+    // Cài đặt thời tiết đổi thì gửi lại đăng ký để máy chủ có / bỏ vị trí.
+    resync: function () { pushState(); },
     init: function () {
       loadTips().then(function () {
         render();

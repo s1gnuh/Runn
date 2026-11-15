@@ -33,6 +33,7 @@
     <a href="#s-volume">Khối lượng</a>
     <a href="#s-load">Tải</a>
     <a href="#s-pace">Pace</a>
+    <a href="#s-fit">Thể lực</a>
     <a href="#s-records">Thành tích</a>
     <a href="#s-goals">Mục tiêu</a>
     <a href="#shoes">Giày</a>
@@ -104,6 +105,19 @@
     <div id="pace-table"></div>
   </section>
 
+  <section class="panel jump-sec" id="s-fit">
+    <div class="sec-head"><h2>Thể lực theo thời gian</h2><span class="hint">26 tuần gần nhất</span></div>
+    <p class="hint" id="fit-sum"></p>
+    <div class="ch-legend" id="fit-legend" hidden>
+      <span><i class="lk-dot"></i>Dự đoán 10K tính tại tuần đó</span>
+      <span><i class="lk-line"></i>Trung bình 3 tuần</span>
+    </div>
+    <div id="fit-chart" class="ch-box"></div>
+    <div class="fit-goal" id="fit-goal" hidden></div>
+    <div id="fit-table"></div>
+    <p class="hint">Mỗi điểm là thời gian 10K mà app dự đoán nếu chỉ biết các buổi chạy tính đến tuần đó, nên không bị nhiễu bởi một buổi tệ hay một hôm trời nóng như biểu đồ pace. Dự báo ngày đạt mục tiêu kéo dài xu hướng 8 tuần gần nhất, chỉ là ước lượng.</p>
+  </section>
+
   <section class="panel" id="dist">
     <div class="sec-head"><h2>Phân bố cự ly</h2><span class="hint" id="dist-n"></span></div>
     <div class="figs" id="dist-figs"></div>
@@ -166,6 +180,20 @@
       <button type="button" class="btn-sm primary" id="ai-run">Phân tích bằng AI</button>
     </div>
     <p class="hint" id="ai-status"></p>
+
+    <h3 class="pred-sub">Hỏi về dữ liệu của bạn</h3>
+    <div class="ai-chips" id="ai-chips">
+      <button type="button" class="btn-sm" data-q="Tuần này mình nên chạy dài bao nhiêu km?">Tuần này chạy dài bao nhiêu?</button>
+      <button type="button" class="btn-sm" data-q="Mình có đang tiến bộ không? Dựa vào đâu?">Mình có đang tiến bộ không?</button>
+      <button type="button" class="btn-sm" data-q="Tải tập luyện của mình hiện có ổn không, cần giảm hay tăng?">Tải tập luyện ổn không?</button>
+      <button type="button" class="btn-sm" data-q="Nếu nghỉ ốm 4–5 ngày thì quay lại tập thế nào?">Nghỉ ốm thì quay lại thế nào?</button>
+    </div>
+    <div class="ai-chat" id="ai-chat"></div>
+    <form class="ai-ask" id="ai-form">
+      <input type="text" id="ai-q" maxlength="300" autocomplete="off" placeholder="Hỏi về nhật ký, giáo án, dự đoán của bạn...">
+      <button type="submit" class="btn-sm primary" id="ai-send">Hỏi</button>
+    </form>
+    <p class="hint">AI chỉ được xem số liệu app đã tính (không gồm ảnh) và không tự tính thêm số nào. Lịch sử hỏi đáp lưu trong trình duyệt này, nút Xoá ở cuối.</p>
   </section>
 
   <p class="foot">Số liệu được tính từ nhật ký chạy lưu trong trình duyệt này.</p>

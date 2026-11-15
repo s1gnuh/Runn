@@ -1,8 +1,9 @@
 // Service worker: app-shell cache cho cả trang chủ (index.html) lẫn trang
 // giải (race.html). Bump CACHE khi các file dưới đổi đáng kể.
-var CACHE = 'bn27-cache-v30';
+var CACHE = 'bn27-cache-v31';
 var STATE = 'bn27-state';
 var FONTS = 'bn27-fonts';
+var SHARE = 'bn27-share';   // ảnh vừa được chia sẻ từ app khác, chờ log.html nhận
 var CORE = [
   './',
   './index.html',
@@ -56,7 +57,7 @@ self.addEventListener('install', function (e) {
 self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) { return k !== CACHE && k !== STATE && k !== FONTS; }).map(function (k) { return caches.delete(k); }));
+      return Promise.all(keys.filter(function (k) { return k !== CACHE && k !== STATE && k !== FONTS && k !== SHARE; }).map(function (k) { return caches.delete(k); }));
     }).then(function () { return self.clients.claim(); })
   );
 });
@@ -118,8 +119,33 @@ function cacheFirst(e, req, cacheName) {
   );
 }
 
+// Web Share Target (manifest.json): hệ điều hành POST ảnh được chia sẻ tới
+// ./share. Cất từng ảnh vào cache SHARE rồi chuyển sang Nhập nhanh, trang đó
+// đọc ra và đưa vào luồng chọn ảnh như thường. Mở ./share bằng GET (ví dụ bấm
+// tải lại) thì chỉ chuyển trang.
+function isShare(req) { return /\/share\/?$/.test(new URL(req.url).pathname); }
+function logUrl() { return new URL('log.html?share=1', self.registration.scope).href; }
+function takeShare(e) {
+  e.respondWith(e.request.formData().then(function (fd) {
+    var files = fd.getAll('photos').filter(function (f) { return f && f.size && /^image\//.test(f.type); });
+    return caches.open(SHARE).then(function (c) {
+      return c.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return c.delete(k); })); }).then(function () {
+        return Promise.all(files.map(function (f, i) {
+          return c.put(new URL('share/' + i, self.registration.scope).href,
+                       new Response(f, { headers: { 'Content-Type': f.type, 'X-Name': encodeURIComponent(f.name || ''), 'X-Modified': String(f.lastModified || 0) } }));
+        }));
+      });
+    });
+  }).catch(function () {}).then(function () { return Response.redirect(logUrl(), 303); }));
+}
+
 self.addEventListener('fetch', function (e) {
   var req = e.request;
+  if (isShare(req)) {
+    if (req.method === 'POST') takeShare(e);
+    else if (req.method === 'GET') e.respondWith(Response.redirect(logUrl(), 303));
+    return;
+  }
   if (req.method !== 'GET') return;
   if (isFont(req)) { cacheFirst(e, req, FONTS); return; }
   if (req.url.indexOf(self.location.origin) !== 0) return;

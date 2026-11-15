@@ -26,7 +26,10 @@ function cleanDays(days) {
   if (!Array.isArray(days)) return [];
   return days.slice(0, MAX_DAYS).reduce((out, d) => {
     if (d && DATE_RE.test(d.date) && typeof d.title === 'string') {
-      out.push({ date: d.date, title: d.title.slice(0, 120), done: !!d.done });
+      const item = { date: d.date, title: d.title.slice(0, 120), done: !!d.done };
+      if (['easy', 'quality', 'long', 'race'].includes(d.type)) item.type = d.type;
+      if (typeof d.pace === 'number' && d.pace >= 150 && d.pace <= 900) item.pace = Math.round(d.pace);
+      out.push(item);
     }
     return out;
   }, []);
@@ -38,6 +41,15 @@ function cleanTime(t) {
   const m = typeof t === 'string' ? TIME_RE.exec(t) : null;
   if (!m) return '06:30';
   return Number(m[1]) > 23 || Number(m[2]) > 59 ? '06:30' : t;
+}
+
+// Vị trí để lấy thời tiết sáng nay: chỉ nhận khi người dùng bật, làm tròn 1 chữ
+// số thập phân (~10 km) — app đã làm tròn trước khi gửi, đây là lớp chặn thứ hai.
+function cleanWx(w) {
+  if (!w || typeof w !== 'object') return null;
+  const lat = Number(w.lat), lon = Number(w.lon), hour = Number(w.hour);
+  if (!(lat >= -90 && lat <= 90) || !(lon >= -180 && lon <= 180)) return null;
+  return { lat: Math.round(lat * 10) / 10, lon: Math.round(lon * 10) / 10, hour: hour >= 0 && hour <= 23 ? Math.round(hour) : 6 };
 }
 
 function cleanTz(tz) {
@@ -77,6 +89,7 @@ module.exports = async (req, res) => {
     time: cleanTime(body.time),
     tz: cleanTz(body.tz),
     days: cleanDays(body.days),
+    wx: cleanWx(body.wx),
     at: Date.now()
   };
 

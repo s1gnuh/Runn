@@ -39,6 +39,12 @@ window.Weather = (function (Core) {
   }
   // Tắt = bỏ vị trí, giữ lại giờ chạy đã chọn cho lần bật sau.
   function disable() { Core.store.setJSON(KEY, { hour: hour() }); }
+  // Gửi vị trí (đã làm tròn) kèm đăng ký nhận thông báo, để máy chủ ghép thời
+  // tiết sáng nay vào lời nhắc. Mặc định tắt vì là dữ liệu rời khỏi máy.
+  function pushOn() { return !!raw().push && enabled(); }
+  function setPush(v) { var c = raw(); c.push = !!v; Core.store.setJSON(KEY, c); }
+  // Phần gửi lên máy chủ, hoặc null nếu chưa bật.
+  function forPush() { var c = cfg(); return c && raw().push ? { lat: c.lat, lon: c.lon, hour: hour() } : null; }
 
   /* ================= mạng ================= */
   function getJSON(url) {
@@ -179,6 +185,7 @@ window.Weather = (function (Core) {
 
   return {
     cfg: cfg, enabled: enabled, hour: hour, setPlace: setPlace, setHour: setHour, disable: disable,
+    pushOn: pushOn, setPush: setPush, forPush: forPush,
     search: search, locate: locate, needs: needs, attach: attach,
     heat: heat, adjust: adjust, text: text, LEVEL: LEVEL
   };

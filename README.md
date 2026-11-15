@@ -76,9 +76,25 @@ Những điểm làm nó nhanh:
 
 Gemini chỉ lấy km, pace, thời gian, ngày và loại hoạt động; các trường khác trong ảnh như độ cao leo (Elev Gain) bị bỏ qua. Nhấn giữ icon app trên Android có lối tắt "Nhập nhanh" và "Lịch tập".
 
+**Chia sẻ thẳng từ Strava** (Android, app đã cài ra màn hình chính): trong Strava bấm Chia sẻ ảnh → chọn "Nhật ký chạy", app mở Nhập nhanh với ảnh đã nạp và đọc luôn. Service worker nhận ảnh qua `POST ./share` (Web Share Target), iOS chưa hỗ trợ.
+
+**Mất mạng**: lưu buổi lúc không có mạng thì việc đọc ảnh và gắn thời tiết được xếp hàng (`localStorage['app-pending']`), có mạng lại hoặc lần mở Nhập nhanh sau app tự làm nốt.
+
 **Nhập hàng loạt**: chọn nhiều ảnh cùng lúc (hoặc kéo thả, dán nhiều ảnh) thì app mở bảng hàng loạt. Mỗi ảnh là một dòng, Gemini đọc song song 3 ảnh một lúc, đọc luôn cả **ngày** nếu ảnh có ghi (không có thì lấy theo thời điểm chụp ảnh). Số nào thiếu thì tự tính từ hai số còn lại. Dòng có vẻ trùng một buổi đã lưu (cùng ngày, cùng km) bị bỏ tick sẵn. Soát lại rồi **Lưu tất cả**; tùy chọn tự đánh dấu buổi tương ứng trong Lịch tập theo ngày.
 
 API key nằm trong `localStorage` của trình duyệt, gửi thẳng cho Google, và **không** có trong file sao lưu. Nên giới hạn key theo tên miền của app trong Google AI Studio.
+
+### Thể lực theo thời gian (trang Thống kê)
+
+Dự đoán 10K được tính lại tại từng tuần trong 26 tuần gần nhất, mỗi lần chỉ với các buổi chạy tính đến tuần đó, nên đường này phản ánh tiến bộ thật thay vì nhiễu của một buổi. Bật "Quy đổi trời mát" thì cả đường thể lực cũng dùng pace đã hiệu chỉnh nhiệt. Xu hướng 8 tuần gần nhất (hồi quy tuyến tính) được kéo dài để ước **ngày đạt mục tiêu A** của giải sắp tới và dự đoán tại ngày thi.
+
+### Hỏi AI về dữ liệu của mình
+
+Dưới báo cáo AI có ô hỏi tự do ("Tuần này chạy dài bao nhiêu?", "Nghỉ ốm thì quay lại thế nào?"). Mỗi câu hỏi gửi kèm đúng bộ số liệu của báo cáo (tải tập luyện, dự đoán, pace quy đổi, giáo án) và 4 lượt hỏi đáp trước đó. AI không tự tính số. Lịch sử giữ 20 lượt trong `localStorage['app-ai-chat']`.
+
+### Giáo án riêng theo mục tiêu thời gian
+
+Khi tạo hoặc sửa giải, chọn **Giáo án riêng theo mục tiêu thời gian**, nhập mục tiêu (ví dụ 55:00) và số buổi mỗi tuần. App sinh giáo án (`Templates.generate`): pace buổi chất lượng từ mục tiêu (quy về pace 10K tương đương bằng Riegel, cùng tỷ lệ với vùng pace của phần dự đoán), pace chạy nhẹ theo thể lực hiện tại nếu chậm hơn mục tiêu; khối lượng khởi điểm bằng trung bình 4 tuần gần nhất trong nhật ký, tăng tối đa 10% mỗi tuần tới đỉnh theo cự ly, tuần thứ 4 giảm tải, 2–3 tuần cuối giảm dần, một buổi chạy thử ở đầu giai đoạn đặc thù để đối chiếu mục tiêu. Cần còn ít nhất 6 tuần. Giáo án sinh ra có cùng cấu trúc với giáo án theo cấp độ nên sửa/xóa buổi và tự điều chỉnh hoạt động như thường.
 
 ### Dự đoán thành tích & báo cáo AI (trang Thống kê)
 
@@ -117,7 +133,7 @@ Cài đặt ở **trang chủ**, áp dụng chung cho mọi giải đang có gi�
 
 | Hôm nay | Thông báo |
 | --- | --- |
-| Có buổi chạy (ở bất kỳ block active nào), chưa đánh dấu xong | "Hôm nay có buổi chạy" kèm tên buổi |
+| Có buổi chạy (ở bất kỳ block active nào), chưa đánh dấu xong | "Hôm nay có buổi chạy" kèm tên buổi. Nếu bật **Kèm thời tiết sáng nay** ở Cài đặt → Thời tiết, thêm dòng nhiệt độ/độ ẩm lúc giờ chạy, mức chậm do nóng ẩm, pace nên chạy, và gợi ý đổi buổi chất lượng thành chạy nhẹ khi quá nóng. Khi đó toạ độ đã làm tròn (~10 km) và giờ chạy được gửi lên máy chủ cùng đăng ký. |
 | Có buổi chạy, đã đánh dấu xong | im lặng |
 | Không có buổi nào, nhưng vẫn trong khoảng ngày của ít nhất 1 block active | "Hôm nay không có buổi chạy" kèm một gợi ý ngẫu nhiên từ `rest-tips.json` — chống đẩy, squat, plank, tập chân |
 | Không có block nào đang active | im lặng |
@@ -159,7 +175,7 @@ js/
   templates.js      khuôn giáo án tái sử dụng được (hiện có "periodized-12w" = khuôn Bắc Ninh)
   blocks.js         1 lần áp khuôn vào 1 giải: sinh buổi tập, tick/ghi chú, lịch tuỳ chỉnh
   races.js          CRUD giải đấu, liên kết block
-  race-form.js      tạo / sửa / xoá giải và gắn / đổi / bỏ giáo án, dùng chung cho trang chủ và trang giải
+  race-form.js      tạo / sửa / xoá giải và gắn / đổi / bỏ giáo án, dùng chung cho trang chủ và trang giải; sinh giáo án riêng theo mục tiêu
   runlog.js         nhật ký chạy (ảnh không bắt buộc) trong IndexedDB, tính PR và streak
   vision.js         đọc ảnh Strava bằng Gemini (km, pace, thời gian, ngày) và viết báo cáo AI
   predict.js        dự đoán thời gian 5/10/21/42K và vùng pace từ nhật ký
@@ -180,6 +196,7 @@ api/               serverless function trên Vercel
   test-push.js       bắn thử một thông báo ngay lập tức
   health.js          báo xem máy chủ đã cấu hình đủ chưa
 lib/store.js       kho subscription trên Upstash Redis
+lib/heat.js        thời tiết sáng nay + hiệu chỉnh nhiệt cho cron (bảng giống js/weather.js)
 vercel.json        header cache và lịch cron
 package.json       dependency cho phần api/ (web-push, @upstash/redis)
 ```
