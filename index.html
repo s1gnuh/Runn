@@ -60,16 +60,14 @@ try { if (!sessionStorage.getItem('runn-splash')) { document.documentElement.cla
     <span class="qstat-cta">Xem thống kê đầy đủ ›</span>
   </a>
 
-  <section class="panel quote-card">
-    <div class="quote-head"><span class="eyebrow">Lời nhắc</span><button type="button" class="lnk" id="quote-next">Câu khác</button></div>
-    <blockquote id="quote-q"></blockquote>
-    <cite id="quote-a"></cite>
-  </section>
+  <button type="button" class="quote-line" id="quote-next" aria-label="Đổi câu truyền động lực khác">
+    <span class="quote-q" id="quote-q"></span>
+    <span class="quote-a" id="quote-a"></span>
+  </button>
 
   <section>
     <div class="sec-head"><h2 class="sec-title">Các giải đấu</h2><button type="button" class="btn-sm" id="race-add-toggle">+ Tạo giải mới</button></div>
     <form id="race-form" class="race-form panel" hidden>
-      <input type="hidden" id="race-edit-id" value="">
       <label class="fld wide"><span>Tên giải</span><input type="text" id="race-name" required placeholder="Ví dụ: Giải chạy Hà Nội 2027"></label>
       <div class="race-form-row">
         <label class="fld"><span>Ngày thi</span><input type="date" id="race-date" required></label>
@@ -81,7 +79,7 @@ try { if (!sessionStorage.getItem('runn-splash')) { document.documentElement.cla
       <p class="hint" id="race-template-desc"></p>
       <div class="panel-actions">
         <button type="submit" class="btn-sm primary" id="race-submit">Tạo giải</button>
-        <button type="button" class="lnk" id="race-cancel" hidden>Huỷ</button>
+        <button type="button" class="lnk" id="race-cancel">Huỷ</button>
       </div>
     </form>
     <div class="race-list" id="race-list"></div>
@@ -99,6 +97,7 @@ try { if (!sessionStorage.getItem('runn-splash')) { document.documentElement.cla
 <script src="js/templates.js"></script>
 <script src="js/blocks.js"></script>
 <script src="js/races.js"></script>
+<script src="js/race-form.js"></script>
 <script src="js/runlog.js"></script>
 <script src="js/goals.js"></script>
 <script src="js/charts.js"></script>

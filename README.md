@@ -37,12 +37,12 @@ Giải Bắc Ninh Legacy Marathon 2027 chính là bản ghi đầu tiên của c
 
 ### Trang chủ
 
-- **Buổi tiếp theo** gộp từ mọi block đang active (nhiều giải chạy song song vẫn hiện đúng buổi gần nhất).
+- **Buổi tiếp theo** gộp từ mọi block đang active (nhiều giải chạy song song vẫn hiện đúng buổi gần nhất). Thẻ hiện luôn mô tả buổi, pace gợi ý và tiến độ tuần này theo giáo án; buổi hôm nay có nút **Đánh dấu đã chạy** (pháo hoa ngay tại chỗ) và **Nhập số liệu** (mở Nhập nhanh đúng ngày, tự đánh dấu buổi khi lưu). Bỏ đánh dấu thì vào Lịch tập.
 - **Thống kê**: km tuần này, km tháng này, streak (số ngày chạy liên tục), tổng km/số buổi từ trước tới giờ.
 - **PR theo cự ly**: 5K, 10K, Half, Full — tự nhận ra từ các run có `km` khớp cự ly chuẩn (sai số ±5%) và có ghi thời gian.
 - **Mục tiêu cá nhân**: km/tuần, số buổi/tuần, km/tháng, hoặc mục tiêu thành tích — mỗi mục tiêu có thanh tiến độ riêng.
 - **Phân tích xu hướng** (rule-based, không AI/ML): biểu đồ km 8 tuần dương lịch gần nhất, cảnh báo khi tuần này tăng hơn 10% so với trung bình 7 tuần trước (đúng nguyên tắc "tăng tải không quá 10%/tuần"), tỷ lệ hoàn thành buổi chất lượng/dài trong 4 tuần gần đây nếu đang có block active.
-- **Danh sách giải** kèm nút **Tạo giải mới** — nhập tên/ngày thi/cự ly, chọn áp khuôn 12 tuần hoặc không, bấm là có ngay trang giải riêng.
+- **Danh sách giải** kèm nút **Tạo giải mới** — nhập tên/ngày thi/cự ly, chọn áp khuôn 12 tuần hoặc không, bấm là có ngay trang giải riêng. Cả thẻ giải bấm được; **sửa / xoá giải** nằm ở mục **Quản lý giải** cuối trang của giải đó.
 - **200 câu truyền động lực** tiếng Anh, đổi câu khi bấm nút hoặc tự đổi mỗi khi có gì đáng ăn mừng.
 
 ### Trang 1 giải
@@ -159,6 +159,7 @@ js/
   templates.js      khuôn giáo án tái sử dụng được (hiện có "periodized-12w" = khuôn Bắc Ninh)
   blocks.js         1 lần áp khuôn vào 1 giải: sinh buổi tập, tick/ghi chú, lịch tuỳ chỉnh
   races.js          CRUD giải đấu, liên kết block
+  race-form.js      tạo / sửa / xoá giải và gắn / đổi / bỏ giáo án, dùng chung cho trang chủ và trang giải
   runlog.js         nhật ký chạy (ảnh không bắt buộc) trong IndexedDB, tính PR và streak
   vision.js         đọc ảnh Strava bằng Gemini (km, pace, thời gian, ngày) và viết báo cáo AI
   predict.js        dự đoán thời gian 5/10/21/42K và vùng pace từ nhật ký

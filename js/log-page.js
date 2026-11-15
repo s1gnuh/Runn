@@ -65,7 +65,8 @@
   }
 
   /* ================= API key Gemini ================= */
-  function renderKey() { el('qe-key').hidden = V.hasKey(); }
+  // Ô dán key là việc làm một lần, nên chỉ hiện đúng lúc cần: đã chọn ảnh mà chưa có key.
+  function renderKey() { el('qe-key').hidden = V.hasKey() || !photo; }
   function saveKey() {
     var v = el('qe-key-in').value.trim();
     if (!v) { C.toast('Chưa lưu được', 'Dán API key vào ô trước'); return; }
@@ -87,6 +88,7 @@
     el('qe-photo').hidden = !photo;
     el('qe-drop').hidden = !!photo;
     if (photo) el('qe-img').src = photo.url;
+    renderKey();
   }
   function dropPhoto() {
     if (photo && photo.own) { try { URL.revokeObjectURL(photo.url); } catch (e) {} }
@@ -761,9 +763,10 @@
     on('qe-key-save', 'click', saveKey);
     on('qe-key-in', 'keydown', function (e) { if (e.key === 'Enter') { e.stopPropagation(); e.preventDefault(); saveKey(); } });
     on('qe-clear', 'click', function () { el('qe-file').value = ''; dropPhoto(); });
-    var drop = el('qe-drop');
+    // Kéo thả ảnh vào bất cứ đâu trong form (nút chọn ảnh giờ chỉ là một nút nhỏ).
+    var drop = el('qe');
     drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('over'); });
-    drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
+    drop.addEventListener('dragleave', function (e) { if (!drop.contains(e.relatedTarget)) drop.classList.remove('over'); });
     drop.addEventListener('drop', function (e) {
       e.preventDefault(); drop.classList.remove('over');
       pickFiles(e.dataTransfer && e.dataTransfer.files);

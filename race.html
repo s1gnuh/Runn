@@ -39,7 +39,7 @@
 
   <div id="r-noblock" class="panel" hidden>
     <h2>Giải này chưa có giáo án</h2>
-    <p class="hint">Bạn có thể chạy tự do và nhập buổi chạy cho giải này ở tab <strong>Nhập nhanh</strong> trên menu, không bắt buộc phải theo một giáo án cố định. Muốn gắn giáo án thì về <a href="index.html">trang chủ</a> và bấm Sửa ở thẻ của giải.</p>
+    <p class="hint">Bạn có thể chạy tự do và nhập buổi chạy cho giải này ở tab <strong>Nhập nhanh</strong> trên menu, không bắt buộc phải theo một giáo án cố định. Muốn gắn giáo án thì bấm <strong>Sửa giải</strong> ở cuối trang này.</p>
   </div>
 
   <nav class="tabs" id="tabs" role="tablist" aria-label="Các phần của trang giải">
@@ -71,6 +71,28 @@
       <div class="sched-fields" id="sched-fields"></div>
       <div class="panel-actions"><button type="button" class="lnk" id="sched-reset">Về lịch gốc</button></div>
     </section>
+
+    <section class="panel" id="r-manage">
+      <h2>Quản lý giải</h2>
+      <div class="panel-actions" id="r-manage-acts">
+        <button type="button" class="btn-sm" id="r-edit">Sửa giải</button>
+        <button type="button" class="btn-sm" id="r-del">Xoá giải</button>
+      </div>
+      <form id="race-form" class="race-form" hidden>
+        <label class="fld wide"><span>Tên giải</span><input type="text" id="race-name" required></label>
+        <div class="race-form-row">
+          <label class="fld"><span>Ngày thi</span><input type="date" id="race-date" required></label>
+          <label class="fld"><span>Cự ly (km)</span><input type="number" id="race-km" min="0" step="any"></label>
+        </div>
+        <label class="fld"><span>Giáo án</span><select id="race-template"></select></label>
+        <p class="hint" id="race-template-desc"></p>
+        <div class="panel-actions">
+          <button type="submit" class="btn-sm primary">Lưu thay đổi</button>
+          <button type="button" class="lnk" id="race-cancel">Huỷ</button>
+        </div>
+      </form>
+      <p class="hint" id="r-manage-note">Xoá giải chỉ xoá giải và giáo án của nó; nhật ký chạy và ảnh vẫn được giữ.</p>
+    </section>
   </div>
 
   <div class="tabpane" id="panel-ref" role="tabpanel" aria-labelledby="tab-ref" hidden>
@@ -94,6 +116,7 @@
 <script src="js/templates.js"></script>
 <script src="js/blocks.js"></script>
 <script src="js/races.js"></script>
+<script src="js/race-form.js"></script>
 <script src="js/runlog.js"></script>
 <script src="js/race-page.js"></script>
 </body>

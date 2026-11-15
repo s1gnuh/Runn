@@ -36,8 +36,10 @@ Each HTML page lists only the modules it needs, in dependency order, via `<scrip
 
 Two kinds of module:
 
-- **Library modules** (`core`, `templates`, `blocks`, `races`, `runlog`, `goals`, `shoes`, `predict`, `adapt`, `charts`, `vision`, `backup`, `notify`, `migrate`, `nav`) export an object and have no side effects beyond that.
+- **Library modules** (`core`, `templates`, `blocks`, `races`, `race-form`, `runlog`, `goals`, `shoes`, `predict`, `adapt`, `load`, `weather`, `charts`, `vision`, `backup`, `notify`, `migrate`, `nav`) export an object and have no side effects beyond that.
 - **Page controllers** (`dashboard.js` for index, and `*-page.js`) export nothing, end in a self-calling `boot()`, and own all DOM for their page. Each `boot()` calls `C.registerSW()` and `C.lockOrientation()`.
+
+Races are created on the home page but edited / deleted on their own `race.html`; both go through `js/race-form.js` (`RaceForm.save` / `remove`), which also owns attaching, swapping or dropping a race's block — don't reimplement that per page.
 
 Page → controller map: `index.html`→`dashboard.js`, `plan.html`→`plan-page.js`, `log.html`→`log-page.js`, `stats.html`→`stats-page.js`, `settings.html`→`settings-page.js`, `race.html`→`race-page.js`.
 

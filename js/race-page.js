@@ -163,13 +163,56 @@
   /* ================= tổng hợp render ================= */
   function renderAll(focusId) {
     renderHeader();
-    if (block) {
-      el('panel-chart-wrap').hidden = false;
-      el('panel-sched-wrap').hidden = false;
-      renderSched(); renderChart(); renderProgress();
-    }
+    el('panel-chart-wrap').hidden = !block;
+    el('panel-sched-wrap').hidden = !block;
+    if (block) { renderSched(); renderChart(); renderProgress(); }
     renderNext();
     if (focusId) { var f = el(focusId); if (f) f.focus(); }
+  }
+
+  /* ================= sửa / xoá giải ================= */
+  // Dùng chung js/race-form.js với trang chủ (nơi tạo giải).
+  var delArmed = false;
+  function syncDel() {
+    var b = el('r-del');
+    b.textContent = delArmed ? 'Chắc chắn xoá?' : 'Xoá giải';
+    if (delArmed) b.setAttribute('data-armed', '1'); else b.removeAttribute('data-armed');
+  }
+  function openEdit() {
+    var RF = window.RaceForm;
+    delArmed = false; syncDel();
+    el('race-template').innerHTML = RF.optionsHtml();
+    el('race-name').value = race.name;
+    el('race-date').value = race.date;
+    el('race-km').value = race.distanceKm || '';
+    el('race-template').value = block ? block.templateId : '';
+    el('race-template-desc').textContent = RF.describe(el('race-template').value);
+    el('race-form').hidden = false;
+    el('r-manage-acts').hidden = true;
+    el('race-name').focus();
+  }
+  function closeEdit() {
+    el('race-form').hidden = true;
+    el('r-manage-acts').hidden = false;
+  }
+  function saveEdit(e) {
+    e.preventDefault();
+    var res = window.RaceForm.save({ id: race.id, name: el('race-name').value, date: el('race-date').value,
+                                     km: el('race-km').value, templateId: el('race-template').value });
+    if (!res) return;
+    race = res.race;
+    block = race.blockId ? B.get(race.blockId) : null;
+    tpl = block ? T.get(block.templateId) : null;
+    chartSeen = false;
+    closeEdit();
+    renderAll();
+    renderReference();
+    C.toast('Đã lưu giải', res.swapped ? 'Đổi giáo án nên tiến độ cũ được làm lại' : race.name);
+  }
+  function deleteRace() {
+    if (!delArmed) { delArmed = true; syncDel(); return; }
+    window.RaceForm.remove(race.id);
+    location.replace('index.html');
   }
 
   /* ================= tab ================= */
@@ -213,6 +256,11 @@
       celebrate(k, e.target, prev);
       renderAll();
     });
+    on('r-edit', 'click', openEdit);
+    on('race-cancel', 'click', closeEdit);
+    on('race-form', 'submit', saveEdit);
+    on('race-template', 'change', function () { el('race-template-desc').textContent = window.RaceForm.describe(el('race-template').value); });
+    on('r-del', 'click', deleteRace);
     on('m4', 'click', function () { block.mode = 4; B.save(block); renderAll(); });
     on('m3', 'click', function () { block.mode = 3; B.save(block); renderAll(); });
     on('tabs', 'click', function (e) {

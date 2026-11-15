@@ -26,16 +26,17 @@
   </header>
 
   <section class="panel qe" id="qe">
-    <h2 id="qe-title">Buổi chạy mới</h2>
-
-    <label class="drop qe-drop" id="qe-drop" for="qe-file">
-      <strong id="qe-drop-t">Chọn ảnh Strava để tự điền</strong>
-      <span id="qe-drop-s">Chọn nhiều ảnh cùng lúc để nhập hàng loạt. Cũng kéo thả hoặc dán (Ctrl+V) được. Không bắt buộc.</span>
-      <input class="sr" type="file" id="qe-file" accept="image/*" multiple>
-    </label>
+    <div class="qe-head">
+      <h2 id="qe-title">Buổi chạy mới</h2>
+      <label class="btn-sm qe-pick" id="qe-drop" for="qe-file" title="Chọn một hoặc nhiều ảnh (nhập hàng loạt). Cũng kéo thả vào form hoặc dán bằng Ctrl+V được.">
+        <svg class="qe-pick-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        Đọc ảnh Strava
+        <input class="sr" type="file" id="qe-file" accept="image/*" multiple>
+      </label>
+    </div>
 
     <div class="qe-key" id="qe-key" hidden>
-      <label class="fld"><span>Gemini API key (để tự điền từ ảnh)</span>
+      <label class="fld"><span>Cần Gemini API key để tự điền từ ảnh</span>
         <input type="password" id="qe-key-in" autocomplete="off" spellcheck="false" placeholder="AIza...">
       </label>
       <button type="button" class="btn-sm primary" id="qe-key-save">Lưu key</button>
@@ -51,6 +52,24 @@
     </div>
 
     <div class="fld">
+      <label for="qe-date">Ngày</label>
+      <div class="qe-when">
+        <input type="date" id="qe-date">
+        <div class="qe-days" id="qe-days">
+          <button type="button" data-ago="0">Hôm nay</button>
+          <button type="button" data-ago="1">Hôm qua</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="qe-nums">
+      <label class="fld"><span>Km</span><input type="text" id="qe-km" inputmode="decimal" autocomplete="off" placeholder="0,0"></label>
+      <label class="fld"><span>Pace /km</span><input type="text" id="qe-pace" inputmode="numeric" autocomplete="off" placeholder="–:––"></label>
+      <label class="fld"><span>Thời gian</span><input type="text" id="qe-time" inputmode="numeric" autocomplete="off" placeholder="–:––"></label>
+    </div>
+    <p class="hint qe-calc" id="qe-calc">Nhập 2 trong 3 số, số còn lại tự tính.</p>
+
+    <div class="fld">
       <span id="qe-kind-l">Loại</span>
       <div class="seg seg-fill" id="qe-kind-seg" role="group" aria-labelledby="qe-kind-l">
         <button type="button" data-kind="run" aria-pressed="true">Chạy</button>
@@ -64,23 +83,7 @@
       </select>
     </div>
 
-    <div class="qe-grid">
-      <div class="fld">
-        <label for="qe-date">Ngày</label>
-        <input type="date" id="qe-date">
-        <div class="qe-days" id="qe-days">
-          <button type="button" data-ago="0">Hôm nay</button>
-          <button type="button" data-ago="1">Hôm qua</button>        </div>
-      </div>
-      <label class="fld" id="qe-shoe-wrap" hidden><span>Giày</span><select id="qe-shoe"></select></label>
-    </div>
-
-    <div class="qe-nums">
-      <label class="fld"><span>Km</span><input type="text" id="qe-km" inputmode="decimal" autocomplete="off" placeholder="5,00"></label>
-      <label class="fld"><span>Pace /km</span><input type="text" id="qe-pace" inputmode="numeric" autocomplete="off" placeholder="6:30"></label>
-      <label class="fld"><span>Thời gian</span><input type="text" id="qe-time" inputmode="numeric" autocomplete="off" placeholder="32:30"></label>
-    </div>
-    <p class="hint qe-calc" id="qe-calc">Nhập 2 trong 3 số, số còn lại tự tính.</p>
+    <label class="fld" id="qe-shoe-wrap" hidden><span>Giày</span><select id="qe-shoe"></select></label>
 
     <label class="fld"><span>Chú thích</span><input type="text" id="qe-note" autocomplete="off" placeholder="Cảm giác, thời tiết, đau mỏi..."></label>
     <p class="hint" id="qe-shoe-hint"></p>
